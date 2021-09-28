@@ -7,6 +7,7 @@
 #include <iostream>
 #include <map>
 #include <vector>
+#include <chrono>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -160,6 +161,8 @@ int main(int argc, char** argv) {
 		cout << "MDP version does not support the FORALL operator yet." << endl;
 		return 11;
 	}
+
+	auto time_init = chrono::high_resolution_clock::now();
 
 	namespace pt = boost::property_tree;
 
@@ -497,4 +500,10 @@ int main(int argc, char** argv) {
 			output_generator->generate_instances_output(semantic_mapping, sorts, sort_definitions, predicate_definitions, gm_var_map, robot_related_sorts);
 		}
 	}
+
+	auto time_end = chrono::high_resolution_clock::now();
+
+	auto ms_int = chrono::duration_cast<chrono::milliseconds>(time_end - time_init);
+
+	std::cout << "Program ran for " << ms_int.count() << " ms";
 }
