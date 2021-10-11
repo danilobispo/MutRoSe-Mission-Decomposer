@@ -1,8 +1,8 @@
 addons: 
   apt: 
     packages: 
-      - g++-10.3
-      - libstdc++-7-dev
+      - g++-10
+      - libstdc++-10-dev
     sources: 
       - ubuntu-toolchain-r-test
       - llvm-toolchain-trusty-6.0
