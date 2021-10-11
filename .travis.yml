@@ -1,22 +1,17 @@
-language: cpp
+addons: 
+  apt: 
+    packages: 
+      - g++-10.3
+      - libstdc++-7-dev
+    sources: 
+      - ubuntu-toolchain-r-test
+      - llvm-toolchain-trusty-6.0
 compiler: gcc
-sudo: true
+install: 
+  - "sudo apt-get install libboost-all-dev"
+  - "sudo apt-get install bison"
+  - "sudo apt-get install flex"
+language: cpp
 os: linux
-
-- os: linux
- compiler: gcc
- addons:
-  apt:
-   sources:
-    - ubuntu-toolchain-r-test
-    - llvm-toolchain-trusty-6.0
-   packages:
-    - g++-10.3
-    - libstdc++-7-dev
-
-install:
- - sudo apt-get install libboost-all-dev
- - sudo apt-get install bison
- - sudo apt-get install flex
-
-script: make -j4
+script: "make -j4"
+sudo: true
