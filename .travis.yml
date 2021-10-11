@@ -1,13 +1,9 @@
-addons: 
-  apt: 
-    packages: 
-      - g++-10
-      - libstdc++-10-dev
-    sources: 
-      - ubuntu-toolchain-r-test
-      - llvm-toolchain-trusty-6.0
 compiler: gcc
 install: 
+  - "sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y"
+  - "sudo apt-get update -qq"
+  - "sudo apt-get install g++-10"
+  - "sudo apt-get install libstdc++-10-dev"
   - "sudo apt-get install libboost-all-dev"
   - "sudo apt-get install bison"
   - "sudo apt-get install flex"
