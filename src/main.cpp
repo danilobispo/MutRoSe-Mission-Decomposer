@@ -362,8 +362,21 @@ int main(int argc, char** argv) {
 	map<string,vector<DecompositionPath>> at_decomposition_paths;
 	map<string,vector<CompleteDecompositionPath>> at_complete_decomposition_paths;
 
+	// Clean file content before writing in function below
+		std::ofstream ofs;
+		ofs.open("method_orderings.txt", std::ofstream::out | std::ofstream::trunc);
+		ofs.close();
 	for(task at : abstract_tasks) {
 		TDG t(at, abstract_tasks, primitive_tasks, methods, verbose);
+
+		if(verbose){
+			std::cout << "Printing edges for task " << at.name << std::endl;
+			t.print_edges();
+			std::cout << "Exiting edge " << at.name << std::endl;
+		}
+
+		
+
 
 		at_decomposition_paths[at.name] = t.retrieve_possible_decompositions();
 		if(ihtn_output) {

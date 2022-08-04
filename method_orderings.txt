@@ -1,0 +1,58 @@
+Method name: food-pickup
+navto wait-for-food __task_effect pickedmeal 
+Method name: table-deliver
+__method_precondition_table-deliver pickedmeal_true_argument_?r navto approach-patient-table deliver-to-table __method_capability manipulation 
+Method name: fetch-deliver
+__method_precondition_fetch-deliver pickedmeal_true_argument_?r1 navto FetchMeal 
+Method name: fetch-meal-with-human
+__method_precondition_fetch-meal-with-human patientcanfetch_true_argument_?p approach-human wait-for-human-to-fetch __task_effect pickedmeal 
+Method name: fetch-meal-with-robot
+navto approach-robot grasp-meal __task_effect pickedmeal __task_effect pickedmeal deliver-meal-to-patient __task_effect pickedmeal 
+Method name: fetch-meal-with-human
+__method_precondition_fetch-meal-with-human patientcanfetch_true_argument_?p approach-human wait-for-human-to-fetch __task_effect pickedmeal 
+Method name: fetch-meal-with-robot
+navto approach-robot grasp-meal __task_effect pickedmeal __task_effect pickedmeal deliver-meal-to-patient __task_effect pickedmeal 
+Method name: pickup-with-door-opening
+__method_precondition_pickup-with-door-opening pickeddishes_false_argument_?r1 navto navto approach-door approach-door open-door __method_capability door-opening PickDishesTwoRobotsAtLocation 
+Method name: pick-dishes-two-robots-at-location
+__method_precondition_pick-dishes-two-robots-at-location at_true_argument_?r1 at_true_argument_?l at_true_argument_?r2 at_true_argument_?l PickDishes 
+Method name: pick-dishes-with-human
+approach-human wait-for-human-to-place-dish __task_effect pickeddishes 
+Method name: pick-dishes-with-robot-at-location
+__method_precondition_pick-dishes-with-robot-at-location at_true_argument_?r2 at_true_argument_?l pick-patient-dishes __task_effect pickeddishes load-dishes __task_effect pickeddishes __task_effect pickeddishes 
+Method name: pick-dishes-with-robot-not-at-location
+__method_precondition_pick-dishes-with-robot-not-at-location at_false_argument_?r2 at_false_argument_?l navto pick-patient-dishes __task_effect pickeddishes load-dishes __task_effect pickeddishes __task_effect pickeddishes 
+Method name: pickup-without-door-opening
+__method_precondition_pickup-without-door-opening patientcanopen_true_argument_?p pickeddishes_false_argument_?r1 navto approach-door wait-for-door-opening PickDishesOneRobotAtLocation 
+Method name: pick-dishes-one-robot-at-location
+__method_precondition_pick-dishes-one-robot-at-location at_true_argument_?r1 at_true_argument_?l at_false_argument_?r2 at_false_argument_?l PickDishes 
+Method name: pick-dishes-with-human
+approach-human wait-for-human-to-place-dish __task_effect pickeddishes 
+Method name: pick-dishes-with-robot-at-location
+__method_precondition_pick-dishes-with-robot-at-location at_true_argument_?r2 at_true_argument_?l pick-patient-dishes __task_effect pickeddishes load-dishes __task_effect pickeddishes __task_effect pickeddishes 
+Method name: pick-dishes-with-robot-not-at-location
+__method_precondition_pick-dishes-with-robot-not-at-location at_false_argument_?r2 at_false_argument_?l navto pick-patient-dishes __task_effect pickeddishes load-dishes __task_effect pickeddishes __task_effect pickeddishes 
+Method name: pick-dishes-two-robots-at-location
+__method_precondition_pick-dishes-two-robots-at-location at_true_argument_?r1 at_true_argument_?l at_true_argument_?r2 at_true_argument_?l PickDishes 
+Method name: pick-dishes-with-human
+approach-human wait-for-human-to-place-dish __task_effect pickeddishes 
+Method name: pick-dishes-with-robot-at-location
+__method_precondition_pick-dishes-with-robot-at-location at_true_argument_?r2 at_true_argument_?l pick-patient-dishes __task_effect pickeddishes load-dishes __task_effect pickeddishes __task_effect pickeddishes 
+Method name: pick-dishes-with-robot-not-at-location
+__method_precondition_pick-dishes-with-robot-not-at-location at_false_argument_?r2 at_false_argument_?l navto pick-patient-dishes __task_effect pickeddishes load-dishes __task_effect pickeddishes __task_effect pickeddishes 
+Method name: pick-dishes-one-robot-at-location
+__method_precondition_pick-dishes-one-robot-at-location at_true_argument_?r1 at_true_argument_?l at_false_argument_?r2 at_false_argument_?l PickDishes 
+Method name: pick-dishes-with-human
+approach-human wait-for-human-to-place-dish __task_effect pickeddishes 
+Method name: pick-dishes-with-robot-at-location
+__method_precondition_pick-dishes-with-robot-at-location at_true_argument_?r2 at_true_argument_?l pick-patient-dishes __task_effect pickeddishes load-dishes __task_effect pickeddishes __task_effect pickeddishes 
+Method name: pick-dishes-with-robot-not-at-location
+__method_precondition_pick-dishes-with-robot-not-at-location at_false_argument_?r2 at_false_argument_?l navto pick-patient-dishes __task_effect pickeddishes load-dishes __task_effect pickeddishes __task_effect pickeddishes 
+Method name: pick-dishes-with-human
+approach-human wait-for-human-to-place-dish __task_effect pickeddishes 
+Method name: pick-dishes-with-robot-at-location
+__method_precondition_pick-dishes-with-robot-at-location at_true_argument_?r2 at_true_argument_?l pick-patient-dishes __task_effect pickeddishes load-dishes __task_effect pickeddishes __task_effect pickeddishes 
+Method name: pick-dishes-with-robot-not-at-location
+__method_precondition_pick-dishes-with-robot-not-at-location at_false_argument_?r2 at_false_argument_?l navto pick-patient-dishes __task_effect pickeddishes load-dishes __task_effect pickeddishes __task_effect pickeddishes 
+Method name: dishes-retrieval
+navto retrieve-dishes 

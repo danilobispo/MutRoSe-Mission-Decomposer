@@ -13,7 +13,7 @@ using namespace std;
 
 /*
     Function: TDG
-    Objective: Constructor for the TDG object. Here we generate a TDG and deal with the cycles 
+    Objective: Constructor for the TDG object. Here we generate a TDG and deal with the cycles
     problem only when generating possible decompositions
 
     @ Input 1: The root abstract task of the TDG, which needs to be decomposed
@@ -22,8 +22,9 @@ using namespace std;
     @ Input 4: The methods defined in HDDL
     @ Input 5: The verbose flag
     @ Output: void. The TDG object
-*/ 
-TDG::TDG(task root_abstract_task, vector<task> a_tasks, vector<task> p_tasks, vector<method> ms, bool verbose) {
+*/
+TDG::TDG(task root_abstract_task, vector<task> a_tasks, vector<task> p_tasks, vector<method> ms, bool verbose)
+{
     abstract_tasks = a_tasks;
     primitive_tasks = p_tasks;
     methods = ms;
@@ -34,7 +35,7 @@ TDG::TDG(task root_abstract_task, vector<task> a_tasks, vector<task> p_tasks, ve
     n.t = root_abstract_task;
     n.parent = -1;
 
-    vertex_t id = boost::add_vertex(n,tdg);
+    vertex_t id = boost::add_vertex(n, tdg);
 
     root = id;
     tdg[id].id = id;
@@ -42,7 +43,7 @@ TDG::TDG(task root_abstract_task, vector<task> a_tasks, vector<task> p_tasks, ve
 
     add_task_path(n);
 
-    this->verbose = verbose; 
+    this->verbose = verbose;
 }
 
 /*
@@ -56,22 +57,23 @@ TDG::TDG(task root_abstract_task, vector<task> a_tasks, vector<task> p_tasks, ve
             * If the method originating some path does not contain preconditions, we assume nothing about what was not told to us. This way
             if we find some predicate in action preconditions, we assume them to be true if they were not set by previous actions effects, since
             this means no harm because we are not generating a plan (just decomposing the task)
-*/ 
-vector<DecompositionPath> TDG::retrieve_possible_decompositions() {
+*/
+vector<DecompositionPath> TDG::retrieve_possible_decompositions()
+{
     vector<int> depth_first_nodes = DFS_visit();
 
     vector<DecompositionPath> paths;
 
-    vector<pair<string,string>> initial_vars = tdg[root].t.vars;
-    vector<literal> world_state; //Empty since root is an AT and doesn't introduce preconditions and effects
-    vector<pair<string,string>> variable_mapping; //Empty since we only have original root vars
+    vector<pair<string, string>> initial_vars = tdg[root].t.vars;
+    vector<literal> world_state;                   // Empty since root is an AT and doesn't introduce preconditions and effects
+    vector<pair<string, string>> variable_mapping; // Empty since we only have original root vars
 
-    paths = decomposition_recursion(depth_first_nodes,0, initial_vars, world_state, variable_mapping);
+    paths = decomposition_recursion(depth_first_nodes, 0, initial_vars, world_state, variable_mapping);
 
-    for(DecompositionPath& path : paths) {
-        std::sort(path.fragments_to_expand.begin(), path.fragments_to_expand.end(), [](auto &left, auto &right) {
-            return left.first.first < right.first.first;
-        });
+    for (DecompositionPath &path : paths)
+    {
+        std::sort(path.fragments_to_expand.begin(), path.fragments_to_expand.end(), [](auto &left, auto &right)
+                  { return left.first.first < right.first.first; });
     }
 
     return paths;
@@ -91,59 +93,70 @@ vector<DecompositionPath> TDG::retrieve_possible_decompositions() {
     @ Output: A vector of the decompositions generated at the current recursion depth
 
     NOTE: Every variable involved in the recursion must come from the root task
-            - In this sense, variable substition must happen 
+            - In this sense, variable substition must happen
             - Inside every method we know which method variable refers to which original variable
             - Inside every action we also know which variable refers to which original variable
-*/ 
-vector<DecompositionPath> TDG::decomposition_recursion(vector<int> dfs_nodes, int current_pos, vector<pair<string,string>> original_vars, 
-                                                    vector<literal>& world_state, vector<pair<string,string>> variable_mapping) {
+*/
+vector<DecompositionPath> TDG::decomposition_recursion(vector<int> dfs_nodes, int current_pos, vector<pair<string, string>> original_vars,
+                                                       vector<literal> &world_state, vector<pair<string, string>> variable_mapping)
+{
     int node = dfs_nodes.at(current_pos);
 
     NodeData n = tdg[node];
 
     vector<DecompositionPath> generated_paths;
-    if(n.type == M) {
+    if (n.type == M)
+    {
         /*
             If any task in the methods subtasks cannot be executed, the method can't be used.
                 - This needs checking in order to skip
                 - This only works if we have an and decomposition of subtasks (we are assuming we only have and)
                 - Also, we are assuming totally ordered methods
         */
-        vector<vector<int>> possible_orderings = find_method_possible_orderings(n.m,n.children);
+        vector<vector<int>> possible_orderings = find_method_possible_orderings(n.m, n.children);
 
-        if(verbose) {
+        if (verbose)
+        {
             print_method_possible_orderings(possible_orderings, n);
+            print_method_possible_orderings_to_file(possible_orderings, n);
         }
 
         bool expansion_needed = false;
         literal expansion_pred;
-        variant<int,float> expansion_pred_sum = 0;
+        variant<int, float> expansion_pred_sum = 0;
         int children_num = -1;
 
         vector<vector<DecompositionPath>> child_paths;
-        for(vector<int> ordering : possible_orderings) {
+        for (vector<int> ordering : possible_orderings)
+        {
             bool ordering_exec = true;
             vector<literal> world_state_copy = world_state;
 
             unsigned int ordering_index = 0;
             set<int> considered_tasks;
-            for(int c : ordering) {
-                vector<int>::iterator it = std::find(dfs_nodes.begin(),dfs_nodes.end(),c);
-                int c_pos = std::distance(dfs_nodes.begin(),it);
+            for (int c : ordering)
+            {
+                vector<int>::iterator it = std::find(dfs_nodes.begin(), dfs_nodes.end(), c);
+                int c_pos = std::distance(dfs_nodes.begin(), it);
 
                 task child_task = tdg[c].t;
-                vector<pair<string,string>> child_var_mapping;
+                vector<pair<string, string>> child_var_mapping;
 
                 int plan_step_index = 0;
-                for(auto subtask : n.m.ps) {
-                    if(subtask.task == child_task.name && considered_tasks.find(plan_step_index) == considered_tasks.end()) {
+                for (auto subtask : n.m.ps)
+                {
+                    if (subtask.task == child_task.name && considered_tasks.find(plan_step_index) == considered_tasks.end())
+                    {
                         int index = 0;
-                        for(string var : subtask.args) {
+                        for (string var : subtask.args)
+                        {
                             string aux;
-                            for(auto mapping : variable_mapping) {
-                                if(mapping.first == var) { //Found mapping from methods
+                            for (auto mapping : variable_mapping)
+                            {
+                                if (mapping.first == var)
+                                { // Found mapping from methods
                                     aux = mapping.second;
-                                    child_var_mapping.push_back(make_pair(child_task.vars.at(index).first,aux));
+                                    child_var_mapping.push_back(make_pair(child_task.vars.at(index).first, aux));
 
                                     break;
                                 }
@@ -161,58 +174,76 @@ vector<DecompositionPath> TDG::decomposition_recursion(vector<int> dfs_nodes, in
 
                 /*
                     If we have an action, check for preconditions based on the current world state and only call decomposition if they are met
-                */             
-                pair<bool,pair<literal,bool>> checking_result;
-                checking_result = check_predicates(child_task, n.m, child_var_mapping, variable_mapping, c, world_state_copy, make_pair(ordering,ordering_index));
+                */
+                pair<bool, pair<literal, bool>> checking_result;
+                checking_result = check_predicates(child_task, n.m, child_var_mapping, variable_mapping, c, world_state_copy, make_pair(ordering, ordering_index));
 
                 bool executable = checking_result.first;
-                
-                if(!expansion_needed) {
+
+                if (!expansion_needed)
+                {
                     expansion_needed = checking_result.second.second;
-                    
-                    if(expansion_needed) {
-                        if(child_task.name.find(method_precondition_action_name) != string::npos) {
+
+                    if (expansion_needed)
+                    {
+                        if (child_task.name.find(method_precondition_action_name) != string::npos)
+                        {
                             bool hasDecrease = false;
-                            for(unsigned int i = ordering_index+1; i < ordering.size(); i++) {
+                            for (unsigned int i = ordering_index + 1; i < ordering.size(); i++)
+                            {
                                 task ch = tdg[i].t;
 
-                                for(literal ceff : ch.costExpression) {
-                                    if(ceff.isCostChangeExpression && !ceff.isAssignCostChangeExpression) {
+                                for (literal ceff : ch.costExpression)
+                                {
+                                    if (ceff.isCostChangeExpression && !ceff.isAssignCostChangeExpression)
+                                    {
                                         hasDecrease = true;
                                     }
                                 }
                             }
 
-                            if(hasDecrease) {
+                            if (hasDecrease)
+                            {
                                 children_num = n.m.ps.size();
 
                                 expansion_pred = checking_result.second.first;
-                            } else {
+                            }
+                            else
+                            {
                                 expansion_needed = false;
                             }
-                        } else {
+                        }
+                        else
+                        {
                             expansion_needed = false;
                         }
                     }
 
-                    if(expansion_needed) {
+                    if (expansion_needed)
+                    {
                         /*
                             Check if expansion is possible. For this to be true, the sum of decreases and increases of the expansion predicate in the possible ordering must be
                             negative (since we only have greater than preconditions for now)
                         */
-                        for(unsigned int i = ordering_index+1; i < ordering.size(); i++) {
+                        for (unsigned int i = ordering_index + 1; i < ordering.size(); i++)
+                        {
                             task ch = tdg[i].t;
 
-                            vector<pair<string,string>> ch_var_mapping;
-                            for(auto subtask : n.m.ps) {
-                                if(subtask.task == ch.name) {
+                            vector<pair<string, string>> ch_var_mapping;
+                            for (auto subtask : n.m.ps)
+                            {
+                                if (subtask.task == ch.name)
+                                {
                                     int index = 0;
-                                    for(string var : subtask.args) {
+                                    for (string var : subtask.args)
+                                    {
                                         string aux;
-                                        for(auto mapping : variable_mapping) {
-                                            if(mapping.first == var) { //Found mapping from methods
+                                        for (auto mapping : variable_mapping)
+                                        {
+                                            if (mapping.first == var)
+                                            { // Found mapping from methods
                                                 aux = mapping.second;
-                                                ch_var_mapping.push_back(make_pair(ch.vars.at(index).first,aux));
+                                                ch_var_mapping.push_back(make_pair(ch.vars.at(index).first, aux));
                                                 break;
                                             }
                                         }
@@ -224,49 +255,67 @@ vector<DecompositionPath> TDG::decomposition_recursion(vector<int> dfs_nodes, in
                                 }
                             }
 
-                            variant<int,float> ch_sum = check_expansion_predicate_assignments(ch, ch_var_mapping, expansion_pred);
+                            variant<int, float> ch_sum = check_expansion_predicate_assignments(ch, ch_var_mapping, expansion_pred);
 
-                            if(holds_alternative<int>(expansion_pred_sum)) {
+                            if (holds_alternative<int>(expansion_pred_sum))
+                            {
                                 int current_sum = std::get<int>(expansion_pred_sum);
 
-                                if(holds_alternative<int>(ch_sum)) {
+                                if (holds_alternative<int>(ch_sum))
+                                {
                                     expansion_pred_sum = current_sum + std::get<int>(ch_sum);
-                                } else {
+                                }
+                                else
+                                {
                                     expansion_pred_sum = static_cast<float>(current_sum) + std::get<float>(ch_sum);
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 float current_sum = std::get<float>(expansion_pred_sum);
 
-                                if(holds_alternative<int>(ch_sum)) {
+                                if (holds_alternative<int>(ch_sum))
+                                {
                                     expansion_pred_sum = current_sum + static_cast<float>(std::get<int>(ch_sum));
-                                } else {
+                                }
+                                else
+                                {
                                     expansion_pred_sum = current_sum + std::get<float>(ch_sum);
                                 }
                             }
                         }
 
                         bool expansion_error = false;
-                        if(holds_alternative<int>(expansion_pred_sum)) {
-                            if(std::get<int>(expansion_pred_sum) >= 0) expansion_error = true;
-                        } else {
+                        if (holds_alternative<int>(expansion_pred_sum))
+                        {
+                            if (std::get<int>(expansion_pred_sum) >= 0)
+                                expansion_error = true;
+                        }
+                        else
+                        {
                             float exp_sum = std::get<float>(expansion_pred_sum);
 
-                            if(greater_than_floats(exp_sum, 0.0) || compare_floats(0.0, exp_sum)) expansion_error = true;
+                            if (greater_than_floats(exp_sum, 0.0) || compare_floats(0.0, exp_sum))
+                                expansion_error = true;
                         }
 
-                        if(expansion_error) {
+                        if (expansion_error)
+                        {
                             string infinite_expansion_error = "Infinite expansion generated with method [" + n.m.name + "]";
 
-                            throw std::runtime_error(infinite_expansion_error); 
+                            throw std::runtime_error(infinite_expansion_error);
                         }
                     }
                 }
 
-                if(executable) {
-                    vector<DecompositionPath> aux = decomposition_recursion(dfs_nodes,c_pos,original_vars,world_state_copy,child_var_mapping);
+                if (executable)
+                {
+                    vector<DecompositionPath> aux = decomposition_recursion(dfs_nodes, c_pos, original_vars, world_state_copy, child_var_mapping);
 
                     child_paths.push_back(aux);
-                } else {
+                }
+                else
+                {
                     ordering_exec = false;
                     break;
                 }
@@ -276,23 +325,31 @@ vector<DecompositionPath> TDG::decomposition_recursion(vector<int> dfs_nodes, in
 
             // Here is one place where we need to check for expansion_needed flags
             vector<DecompositionPath> ordering_paths;
-            if(ordering_exec) {
-                for(auto aux : child_paths) {
-                    if(aux.size() > 0) {
+            if (ordering_exec)
+            {
+                for (auto aux : child_paths)
+                {
+                    if (aux.size() > 0)
+                    {
                         vector<DecompositionPath> g_paths_temp = ordering_paths;
                         ordering_paths.clear();
 
-                        for(auto p : aux) {
-                            if(g_paths_temp.size() > 0) {
-                                for(auto g_pt : g_paths_temp) {
+                        for (auto p : aux)
+                        {
+                            if (g_paths_temp.size() > 0)
+                            {
+                                for (auto g_pt : g_paths_temp)
+                                {
                                     DecompositionPath p_temp = p;
-                                    p_temp.decomposition.insert(p_temp.decomposition.begin(),g_pt.decomposition.begin(),g_pt.decomposition.end());
+                                    p_temp.decomposition.insert(p_temp.decomposition.begin(), g_pt.decomposition.begin(), g_pt.decomposition.end());
 
                                     // Adjust indexes of task fragments that will need expansion
-                                    if(p_temp.needs_expansion) {
-                                        int index_diff = g_pt.decomposition.size()-1;
+                                    if (p_temp.needs_expansion)
+                                    {
+                                        int index_diff = g_pt.decomposition.size() - 1;
 
-                                        for(auto& fragment : p_temp.fragments_to_expand) {
+                                        for (auto &fragment : p_temp.fragments_to_expand)
+                                        {
                                             fragment.first.first += index_diff;
                                             fragment.first.second += index_diff;
                                         }
@@ -300,7 +357,9 @@ vector<DecompositionPath> TDG::decomposition_recursion(vector<int> dfs_nodes, in
 
                                     ordering_paths.push_back(p_temp);
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 ordering_paths.push_back(p);
                             }
                         }
@@ -315,52 +374,68 @@ vector<DecompositionPath> TDG::decomposition_recursion(vector<int> dfs_nodes, in
                     - Also, do we need to generalize this?
             */
             NodeData parent = tdg[n.parent];
-            if(parent.belongs_to_cycles) {
+            if (parent.belongs_to_cycles)
+            {
                 bool has_cycle_with_parent = false;
-                for(int link : parent.cycle_links) {
-                    if(link == n.id) {
+                for (int link : parent.cycle_links)
+                {
+                    if (link == n.id)
+                    {
                         has_cycle_with_parent = true;
                         break;
                     }
                 }
 
-                if(!has_cycle_with_parent) {
+                if (!has_cycle_with_parent)
+                {
                     expansion_needed = false;
-                }        
-            } else {
+                }
+            }
+            else
+            {
                 expansion_needed = false;
             }
 
-            if(expansion_needed) {
-                for(DecompositionPath& path : ordering_paths) {
+            if (expansion_needed)
+            {
+                for (DecompositionPath &path : ordering_paths)
+                {
                     path.needs_expansion = expansion_needed;
-                    path.fragments_to_expand.insert(path.fragments_to_expand.begin(), make_pair(make_pair(0,children_num-2),expansion_pred));
+                    path.fragments_to_expand.insert(path.fragments_to_expand.begin(), make_pair(make_pair(0, children_num - 2), expansion_pred));
                     path.expansion_decrease = expansion_pred_sum;
                 }
             }
 
-            generated_paths.insert(generated_paths.end(),ordering_paths.begin(),ordering_paths.end());
+            generated_paths.insert(generated_paths.end(), ordering_paths.begin(), ordering_paths.end());
 
             child_paths.clear();
         }
-    } else if(n.type == AT) {
+    }
+    else if (n.type == AT)
+    {
         vector<literal> initial_world_state = world_state;
-        for(int c : n.children) {
-            vector<int>::iterator it = std::find(dfs_nodes.begin(),dfs_nodes.end(),c);
-            int c_pos = std::distance(dfs_nodes.begin(),it);
+        for (int c : n.children)
+        {
+            vector<int>::iterator it = std::find(dfs_nodes.begin(), dfs_nodes.end(), c);
+            int c_pos = std::distance(dfs_nodes.begin(), it);
 
             method child_method = tdg[c].m;
-            vector<pair<string,string>> child_var_mapping;
-            if(n.id == root) { //If we are dealing with the root
+            vector<pair<string, string>> child_var_mapping;
+            if (n.id == root)
+            { // If we are dealing with the root
                 int index = 0;
-                for(string arg : child_method.atargs) {
-                    child_var_mapping.push_back(make_pair(arg,original_vars.at(index).first));
-                    index++; 
+                for (string arg : child_method.atargs)
+                {
+                    child_var_mapping.push_back(make_pair(arg, original_vars.at(index).first));
+                    index++;
                 }
-            } else {
+            }
+            else
+            {
                 int index = 0;
-                for(string arg : child_method.atargs) {
-                    child_var_mapping.push_back(make_pair(arg,variable_mapping.at(index).second)); //Mapping to original vars
+                for (string arg : child_method.atargs)
+                {
+                    child_var_mapping.push_back(make_pair(arg, variable_mapping.at(index).second)); // Mapping to original vars
                     index++;
                 }
             }
@@ -368,18 +443,20 @@ vector<DecompositionPath> TDG::decomposition_recursion(vector<int> dfs_nodes, in
             /*
                 Methods preconditions are transformed into actions, so we only check for preconditions when checking methods children
             */
-            vector<DecompositionPath> aux = decomposition_recursion(dfs_nodes,c_pos,original_vars,world_state,child_var_mapping);
-            generated_paths.insert(generated_paths.end(),aux.begin(),aux.end());
+            vector<DecompositionPath> aux = decomposition_recursion(dfs_nodes, c_pos, original_vars, world_state, child_var_mapping);
+            generated_paths.insert(generated_paths.end(), aux.begin(), aux.end());
 
             world_state = initial_world_state;
         }
-    } else if(n.type == PT) {
-        change_world_state(n.t,world_state,variable_mapping);
-        
+    }
+    else if (n.type == PT)
+    {
+        change_world_state(n.t, world_state, variable_mapping);
+
         DecompositionPath t;
-        
+
         task nt = n.t;
-        variable_renaming(nt,variable_mapping);
+        variable_renaming(nt, variable_mapping);
         t.decomposition.push_back(nt);
 
         generated_paths.push_back(t);
@@ -388,14 +465,15 @@ vector<DecompositionPath> TDG::decomposition_recursion(vector<int> dfs_nodes, in
     return generated_paths;
 }
 
-vector<CompleteDecompositionPath> TDG::retrieve_possible_complete_decompositions() {
+vector<CompleteDecompositionPath> TDG::retrieve_possible_complete_decompositions()
+{
     vector<int> depth_first_nodes = DFS_visit();
 
     vector<CompleteDecompositionPath> paths;
 
-    vector<pair<string,string>> initial_vars = tdg[root].t.vars;
-    vector<literal> world_state; //Empty since root is an AT and doesn't introduce preconditions and effects
-    vector<pair<string,string>> variable_mapping; //Empty since we only have original root vars
+    vector<pair<string, string>> initial_vars = tdg[root].t.vars;
+    vector<literal> world_state;                   // Empty since root is an AT and doesn't introduce preconditions and effects
+    vector<pair<string, string>> variable_mapping; // Empty since we only have original root vars
 
     paths = complete_decomposition_recursion(depth_first_nodes, 0, initial_vars, world_state, variable_mapping, -1, 0);
 
@@ -415,8 +493,9 @@ vector<CompleteDecompositionPath> TDG::retrieve_possible_complete_decompositions
     @ Input 6: The node's parent in the TDG
     @ Input 7: The current node's index in the TDG
     @ Output: The vector of the complete decomposition paths of the TDG
-*/ 
-vector<CompleteDecompositionPath> TDG::complete_decomposition_recursion(vector<int> dfs_nodes, int current_pos, vector<pair<string,string>> original_vars, vector<literal>& world_state, vector<pair<string,string>> variable_mapping, int parent, int current_index) {
+*/
+vector<CompleteDecompositionPath> TDG::complete_decomposition_recursion(vector<int> dfs_nodes, int current_pos, vector<pair<string, string>> original_vars, vector<literal> &world_state, vector<pair<string, string>> variable_mapping, int parent, int current_index)
+{
     int node = dfs_nodes.at(current_pos);
 
     NodeData n = tdg[node];
@@ -424,40 +503,48 @@ vector<CompleteDecompositionPath> TDG::complete_decomposition_recursion(vector<i
     int node_index = current_index;
 
     vector<CompleteDecompositionPath> generated_paths;
-    if(n.type == M) {
+    if (n.type == M)
+    {
         /*
             If any task in the methods subtasks cannot be executed, the method can't be used.
                 - This needs checking in order to skip
                 - This only works if we have an and decomposition of subtasks (we are assuming we only have and)
                 - Also, we are assuming totally ordered methods
         */
-        vector<vector<int>> possible_orderings = find_method_possible_orderings(n.m,n.children);
+        vector<vector<int>> possible_orderings = find_method_possible_orderings(n.m, n.children);
 
         vector<vector<CompleteDecompositionPath>> child_paths;
-        for(vector<int> ordering : possible_orderings) {
+        for (vector<int> ordering : possible_orderings)
+        {
             bool ordering_exec = true;
             vector<literal> world_state_copy = world_state;
 
             unsigned int ordering_index = 0;
             set<int> considered_tasks;
-            int child_index = current_index+1;
-            for(int c : ordering) {
-                vector<int>::iterator it = std::find(dfs_nodes.begin(),dfs_nodes.end(),c);
-                int c_pos = std::distance(dfs_nodes.begin(),it);
+            int child_index = current_index + 1;
+            for (int c : ordering)
+            {
+                vector<int>::iterator it = std::find(dfs_nodes.begin(), dfs_nodes.end(), c);
+                int c_pos = std::distance(dfs_nodes.begin(), it);
 
                 task child_task = tdg[c].t;
-                vector<pair<string,string>> child_var_mapping;
+                vector<pair<string, string>> child_var_mapping;
 
                 int plan_step_index = 0;
-                for(auto subtask : n.m.ps) {
-                    if(subtask.task == child_task.name && considered_tasks.find(plan_step_index) == considered_tasks.end()) {
+                for (auto subtask : n.m.ps)
+                {
+                    if (subtask.task == child_task.name && considered_tasks.find(plan_step_index) == considered_tasks.end())
+                    {
                         int index = 0;
-                        for(string var : subtask.args) {
+                        for (string var : subtask.args)
+                        {
                             string aux;
-                            for(auto mapping : variable_mapping) {
-                                if(mapping.first == var) { //Found mapping from methods
+                            for (auto mapping : variable_mapping)
+                            {
+                                if (mapping.first == var)
+                                { // Found mapping from methods
                                     aux = mapping.second;
-                                    child_var_mapping.push_back(make_pair(child_task.vars.at(index).first,aux));
+                                    child_var_mapping.push_back(make_pair(child_task.vars.at(index).first, aux));
 
                                     break;
                                 }
@@ -475,17 +562,20 @@ vector<CompleteDecompositionPath> TDG::complete_decomposition_recursion(vector<i
 
                 /*
                     If we have an action, check for preconditions based on the current world state and only call decomposition if they are met
-                */             
-                pair<bool,pair<literal,bool>> checking_result;
-                checking_result = check_predicates(child_task, n.m, child_var_mapping, variable_mapping, c, world_state_copy, make_pair(ordering,ordering_index));
+                */
+                pair<bool, pair<literal, bool>> checking_result;
+                checking_result = check_predicates(child_task, n.m, child_var_mapping, variable_mapping, c, world_state_copy, make_pair(ordering, ordering_index));
 
                 bool executable = checking_result.first;
 
-                if(executable) {
-                    vector<CompleteDecompositionPath> aux = complete_decomposition_recursion(dfs_nodes,c_pos,original_vars,world_state_copy,child_var_mapping, node_index, child_index);
+                if (executable)
+                {
+                    vector<CompleteDecompositionPath> aux = complete_decomposition_recursion(dfs_nodes, c_pos, original_vars, world_state_copy, child_var_mapping, node_index, child_index);
 
                     child_paths.push_back(aux);
-                } else {
+                }
+                else
+                {
                     ordering_exec = false;
                     break;
                 }
@@ -496,21 +586,29 @@ vector<CompleteDecompositionPath> TDG::complete_decomposition_recursion(vector<i
 
             // Here is one place where we need to check for expansion_needed flags
             vector<CompleteDecompositionPath> ordering_paths;
-            if(ordering_exec) {
-                for(auto aux : child_paths) {
-                    if(aux.size() > 0) {
+            if (ordering_exec)
+            {
+                for (auto aux : child_paths)
+                {
+                    if (aux.size() > 0)
+                    {
                         vector<CompleteDecompositionPath> g_paths_temp = ordering_paths;
                         ordering_paths.clear();
 
-                        for(auto p : aux) {
-                            if(g_paths_temp.size() > 0) {
-                                for(auto g_pt : g_paths_temp) {
+                        for (auto p : aux)
+                        {
+                            if (g_paths_temp.size() > 0)
+                            {
+                                for (auto g_pt : g_paths_temp)
+                                {
                                     CompleteDecompositionPath p_temp = p;
-                                    p_temp.decomposition.insert(p_temp.decomposition.begin(),g_pt.decomposition.begin(),g_pt.decomposition.end());
+                                    p_temp.decomposition.insert(p_temp.decomposition.begin(), g_pt.decomposition.begin(), g_pt.decomposition.end());
 
                                     ordering_paths.push_back(p_temp);
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 ordering_paths.push_back(p);
                             }
                         }
@@ -518,8 +616,9 @@ vector<CompleteDecompositionPath> TDG::complete_decomposition_recursion(vector<i
                 }
             }
 
-            generated_paths.insert(generated_paths.end(),ordering_paths.begin(),ordering_paths.end());
-            for(CompleteDecompositionPath& child_path : generated_paths) {
+            generated_paths.insert(generated_paths.end(), ordering_paths.begin(), ordering_paths.end());
+            for (CompleteDecompositionPath &child_path : generated_paths)
+            {
                 method m = n.m;
                 method_variable_renaming(m, variable_mapping);
 
@@ -532,26 +631,34 @@ vector<CompleteDecompositionPath> TDG::complete_decomposition_recursion(vector<i
 
             child_paths.clear();
         }
-    } else if(n.type == AT) {
+    }
+    else if (n.type == AT)
+    {
         vector<literal> initial_world_state = world_state;
 
-        int child_index = current_index+1;
-        for(int c : n.children) {
-            vector<int>::iterator it = std::find(dfs_nodes.begin(),dfs_nodes.end(),c);
-            int c_pos = std::distance(dfs_nodes.begin(),it);
+        int child_index = current_index + 1;
+        for (int c : n.children)
+        {
+            vector<int>::iterator it = std::find(dfs_nodes.begin(), dfs_nodes.end(), c);
+            int c_pos = std::distance(dfs_nodes.begin(), it);
 
             method child_method = tdg[c].m;
-            vector<pair<string,string>> child_var_mapping;
-            if(n.id == root) { //If we are dealing with the root
+            vector<pair<string, string>> child_var_mapping;
+            if (n.id == root)
+            { // If we are dealing with the root
                 int index = 0;
-                for(string arg : child_method.atargs) {
-                    child_var_mapping.push_back(make_pair(arg,original_vars.at(index).first));
-                    index++; 
+                for (string arg : child_method.atargs)
+                {
+                    child_var_mapping.push_back(make_pair(arg, original_vars.at(index).first));
+                    index++;
                 }
-            } else {
+            }
+            else
+            {
                 int index = 0;
-                for(string arg : child_method.atargs) {
-                    child_var_mapping.push_back(make_pair(arg,variable_mapping.at(index).second)); //Mapping to original vars
+                for (string arg : child_method.atargs)
+                {
+                    child_var_mapping.push_back(make_pair(arg, variable_mapping.at(index).second)); // Mapping to original vars
                     index++;
                 }
             }
@@ -559,14 +666,15 @@ vector<CompleteDecompositionPath> TDG::complete_decomposition_recursion(vector<i
             /*
                 Methods preconditions are transformed into actions, so we only check for preconditions when checking methods children
             */
-            vector<CompleteDecompositionPath> aux = complete_decomposition_recursion(dfs_nodes,c_pos,original_vars,world_state,child_var_mapping,node_index,child_index);
-            generated_paths.insert(generated_paths.end(),aux.begin(),aux.end());
+            vector<CompleteDecompositionPath> aux = complete_decomposition_recursion(dfs_nodes, c_pos, original_vars, world_state, child_var_mapping, node_index, child_index);
+            generated_paths.insert(generated_paths.end(), aux.begin(), aux.end());
 
             world_state = initial_world_state;
             child_index++;
         }
 
-        for(CompleteDecompositionPath& path : generated_paths) {
+        for (CompleteDecompositionPath &path : generated_paths)
+        {
             task t = n.t;
             variable_renaming(t, variable_mapping);
 
@@ -575,16 +683,18 @@ vector<CompleteDecompositionPath> TDG::complete_decomposition_recursion(vector<i
             at_node.id = node_index;
             at_node.parent = parent;
             at_node.is_primitive_task_node = false;
-            
+
             path.decomposition.insert(path.decomposition.begin(), at_node);
         }
-    } else if(n.type == PT) {
-        change_world_state(n.t,world_state,variable_mapping);
-        
+    }
+    else if (n.type == PT)
+    {
+        change_world_state(n.t, world_state, variable_mapping);
+
         CompleteDecompositionPath t;
-        
+
         task nt = n.t;
-        variable_renaming(nt,variable_mapping);
+        variable_renaming(nt, variable_mapping);
 
         DecompositionNode pt;
         pt.content = nt;
@@ -607,43 +717,54 @@ vector<CompleteDecompositionPath> TDG::complete_decomposition_recursion(vector<i
 
     @ Input: The method node being considered
     @ Output: void. The path will be added to the TDG object calling the function
-*/ 
-void TDG::add_method_path(NodeData m) {
-    for(plan_step ps : m.m.ps) {
+*/
+void TDG::add_method_path(NodeData m)
+{
+    for (plan_step ps : m.m.ps)
+    {
         NodeData t_node;
         task n_task;
 
         bool primitive = true;
 
-        for(task at : abstract_tasks) {
-            if(at.name == ps.task) {
+        for (task at : abstract_tasks)
+        {
+            if (at.name == ps.task)
+            {
                 primitive = false;
                 n_task = at;
                 break;
             }
         }
 
-        if(primitive) {
-            for(task pt : primitive_tasks) {
-                if(pt.name == ps.task) {
+        if (primitive)
+        {
+            for (task pt : primitive_tasks)
+            {
+                if (pt.name == ps.task)
+                {
                     n_task = pt;
                     break;
                 }
             }
             t_node.type = PT;
-        } else {
+        }
+        else
+        {
             t_node.type = AT;
         }
 
         t_node.t = n_task;
 
-        pair<bool,int> cycle = make_pair(false,-1);
-        if(!primitive) {
-            cycle = check_cycle(m.id,t_node);
+        pair<bool, int> cycle = make_pair(false, -1);
+        if (!primitive)
+        {
+            cycle = check_cycle(m.id, t_node);
         }
 
-        if(!cycle.first) {
-            vertex_t id = boost::add_vertex(t_node,tdg);
+        if (!cycle.first)
+        {
+            vertex_t id = boost::add_vertex(t_node, tdg);
 
             tdg[id].id = id;
 
@@ -652,7 +773,9 @@ void TDG::add_method_path(NodeData m) {
             add_edge(m.id, tdg[id].id);
 
             add_task_path(t_node);
-        } else {
+        }
+        else
+        {
             add_edge(m.id, cycle.second);
         }
     }
@@ -660,21 +783,25 @@ void TDG::add_method_path(NodeData m) {
 
 /*
     Function: add_task_path
-    Objective: Add a task (primitive or abstract) to the TDG. Find methods that decompose the task 
+    Objective: Add a task (primitive or abstract) to the TDG. Find methods that decompose the task
     and from them generate the complete path resulting from their decomposition
 
     @ Input: The task node being considered
     @ Output: void. The path will be added to the TDG object calling the function
-*/ 
-void TDG::add_task_path(NodeData t) {
-    if(t.type != PT) {
-        for(method m : methods) {
-            if(m.at == t.t.name) {
+*/
+void TDG::add_task_path(NodeData t)
+{
+    if (t.type != PT)
+    {
+        for (method m : methods)
+        {
+            if (m.at == t.t.name)
+            {
                 NodeData m_node;
                 m_node.type = M;
                 m_node.m = m;
-                
-                vertex_t id = boost::add_vertex(m_node,tdg);
+
+                vertex_t id = boost::add_vertex(m_node, tdg);
 
                 tdg[id].id = id;
 
@@ -695,23 +822,27 @@ void TDG::add_task_path(NodeData t) {
     @ Input 1: The source node ID
     @ Input 2: The target node ID
     @ Output: void. The edge will be added in the TDG
-*/ 
-void TDG::add_edge(int s_id, int t_id) {
+*/
+void TDG::add_edge(int s_id, int t_id)
+{
     EData edge;
 
     edge.source = s_id;
     edge.target = t_id;
 
-    if(tdg[s_id].type == M) {
+    if (tdg[s_id].type == M)
+    {
         edge.type = OOR;
-    } else {
+    }
+    else
+    {
         edge.type = AAND;
     }
 
     tdg[s_id].children.push_back(t_id);
     tdg[t_id].parent = s_id;
 
-    boost::add_edge(s_id,t_id,edge,tdg);
+    boost::add_edge(s_id, t_id, edge, tdg);
 }
 
 /*
@@ -720,8 +851,9 @@ void TDG::add_edge(int s_id, int t_id) {
     generated through this visit
 
     @ Output: The vector of node ID's
-*/ 
-vector<int> TDG::DFS_visit() {
+*/
+vector<int> TDG::DFS_visit()
+{
     auto indexmap = boost::get(boost::vertex_index, tdg);
     auto colormap = boost::make_vector_property_map<boost::default_color_type>(indexmap);
 
@@ -738,26 +870,37 @@ vector<int> TDG::DFS_visit() {
     Objective: Print TDG edges
 
     @ Output: void. The edges will be printed in a terminal
-*/ 
-void TDG::print_edges() {
+*/
+void TDG::print_edges()
+{
     boost::graph_traits<TDGraph>::edge_iterator it, end;
-	
-	for(tie(it,end) = boost::edges(tdg);it != end;++it) {
+
+    for (tie(it, end) = boost::edges(tdg); it != end; ++it)
+    {
         NodeData s = tdg[boost::source(*it, tdg)];
         NodeData t = tdg[boost::target(*it, tdg)];
 
-        if(s.type != M) {
-		    std::cout << s.t.name << " -> ";
-        } else {
+        if (s.type != M)
+        {
+            std::cout << s.t.name << " -> ";
+        }
+        else
+        {
             std::cout << s.m.name << " -> ";
         }
 
-        if(t.type != M) {
-		    std::cout << t.t.name << endl;
-        } else {
+        if (t.type != M)
+        {
+            std::cout << t.t.name << endl;
+        }
+        else
+        {
             std::cout << t.m.name << endl;
         }
-	}
+
+        std::cout << "Source Type: " << s.type << std::endl;
+        std::cout << "Target type: " << t.type << std::endl;
+    }
 }
 
 /*
@@ -765,17 +908,112 @@ void TDG::print_edges() {
     Objective: Print all the possible orderings for a method
 
     @ Input 1: The possible orderings for the method
-    @ Input 2: The method node being considered 
+    @ Input 2: The method node being considered
     @ Output: void. The possible orderings will be printed in a terminal
-*/ 
-void TDG::print_method_possible_orderings(vector<vector<int>> possible_orderings, NodeData n) {
+*/
+void TDG::print_method_possible_orderings(vector<vector<int>> possible_orderings, NodeData n)
+{
     cout << "Possible orderings for method " << n.m.name << ":" << endl;
-    for(vector<int> ordering : possible_orderings) {
-        for(int t : ordering) {
+    for (vector<int> ordering : possible_orderings)
+    {
+        for (int t : ordering)
+        {
             cout << tdg[t].t.name << " ";
+
+            if (!tdg[t].t.required_capabilities.empty())
+            { // has required capabilities?
+                vector<string> capabilities = tdg[t].t.required_capabilities;
+                for (string cap : capabilities)
+                {
+                    cout << "__method_capability " << cap << " ";
+                }
+            }
+            if (tdg[t].t.name.rfind("__method_precondition_", 0) == 0)
+            { // has precondition?
+                vector<literal> t_prec = tdg[t].t.prec;
+                for (literal &prec : t_prec)
+                { // If it has effect
+                    if (prec.positive)
+                    {
+                        cout << prec.predicate << "_true ";
+                    }
+                    else
+                    {
+                        cout << prec.predicate << "_false ";
+                    }
+                }
+            }
+            if (!tdg[t].t.eff.empty())
+            { // has effects?
+                vector<literal> t_effs = tdg[t].t.eff;
+                for (literal &eff : t_effs)
+                { // If it has effect
+                    cout << "__task_effect " << eff.predicate << " ";
+                }
+            }
         }
         cout << endl;
     }
+}
+
+/*
+    Function: print_method_possible_orderings to file
+    Objective: Print all the possible orderings for all methods in a file
+
+    @ Input 1: The possible orderings for the method
+    @ Input 2: The method node being considered
+    @ Output: void. The possible orderings will be printed in a terminal
+*/
+void TDG::print_method_possible_orderings_to_file(vector<vector<int>> possible_orderings, NodeData n)
+{
+    // Create file:
+    std::ofstream out("method_orderings.txt", std::ios_base::app | std::ios_base::out);
+    // Start printing relevant information
+    out << "Method name: " << n.m.name << endl;
+    for (vector<int> ordering : possible_orderings)
+    {
+        for (int t : ordering)
+        {
+            out << tdg[t].t.name << " ";
+            if (!tdg[t].t.required_capabilities.empty())
+            { // has required capabilities?
+                vector<string> capabilities = tdg[t].t.required_capabilities;
+                for (string cap : capabilities)
+                {
+                    out << "__method_capability " << cap << " ";
+                }
+            }
+            if (tdg[t].t.name.rfind("__method_precondition_", 0) == 0)
+            { // has precondition?
+                vector<literal> t_prec = tdg[t].t.prec;
+                for (literal &prec : t_prec)
+                { // If it has precondition
+                    for (string argument : prec.arguments)
+                    {
+                        if (prec.positive)
+                        {
+                            out << prec.predicate << "_true";
+                        }
+                        else
+                        {
+                            out << prec.predicate << "_false";
+                        }
+                        out << "_argument_" << argument << " ";
+                    }
+                }
+            }
+            if (!tdg[t].t.eff.empty())
+            { // has effects?
+                vector<literal> t_effs = tdg[t].t.eff;
+                for (literal &eff : t_effs)
+                { // If it has effect
+                    out << "__task_effect_" << eff.predicate << " ";
+                }
+            }
+        }
+        out << endl;
+    }
+    out.close();
 }
 
 /*
@@ -788,18 +1026,23 @@ void TDG::print_method_possible_orderings(vector<vector<int>> possible_orderings
     @ Output: A pair containing a flag if we have a cycle or not and the ID of the task to which this cycle refers to.
 
     NOTE: Task t must be a parent in some degree of m in order for us to consider a cycle
-*/ 
-pair<bool,int> TDG::check_cycle(int m_id, NodeData t) {
-    pair<bool,int> cycle = make_pair(false,-1);
+*/
+pair<bool, int> TDG::check_cycle(int m_id, NodeData t)
+{
+    pair<bool, int> cycle = make_pair(false, -1);
     NodeData m = tdg[m_id];
 
-    NodeData* current_node = &tdg[m_id];
+    NodeData *current_node = &tdg[m_id];
     bool at_root = false;
-    while(at_root == false) {
-        if(current_node->parent == -1) at_root = true;
+    while (at_root == false)
+    {
+        if (current_node->parent == -1)
+            at_root = true;
 
-        if(current_node->type == AT) {
-            if(current_node->t.name == t.t.name) {
+        if (current_node->type == AT)
+        {
+            if (current_node->t.name == t.t.name)
+            {
                 current_node->belongs_to_cycles = true;
                 current_node->cycle_links.push_back(m.id);
                 cycle.first = true;
@@ -809,7 +1052,8 @@ pair<bool,int> TDG::check_cycle(int m_id, NodeData t) {
             }
         }
 
-        if(current_node->parent != -1) {
+        if (current_node->parent != -1)
+        {
             current_node = &tdg[current_node->parent];
         }
     }
@@ -828,17 +1072,22 @@ pair<bool,int> TDG::check_cycle(int m_id, NodeData t) {
     @ Input 4: The world state
     @ Input 5: The task index in the TDG
     @ Output: A boolean flag indicating if predicates hold
-*/ 
-pair<bool,pair<literal,bool>> TDG::check_predicates(task t, method parent_method, vector<pair<string,string>> t_var_mapping, vector<pair<string,string>> global_var_mapping, int t_id, vector<literal>& world_state, pair<vector<int>,int> ordering_info) {
+*/
+pair<bool, pair<literal, bool>> TDG::check_predicates(task t, method parent_method, vector<pair<string, string>> t_var_mapping, vector<pair<string, string>> global_var_mapping, int t_id, vector<literal> &world_state, pair<vector<int>, int> ordering_info)
+{
     vector<literal> t_precs, precs_to_add;
 
     t_precs = t.prec;
 
-    //Rename predicates variables
-    for(literal& prec : t_precs) {
-        for(string& arg : prec.arguments) {
-            for(pair<string,string>& arg_mapping : t_var_mapping) {
-                if(arg_mapping.first == arg) {
+    // Rename predicates variables
+    for (literal &prec : t_precs)
+    {
+        for (string &arg : prec.arguments)
+        {
+            for (pair<string, string> &arg_mapping : t_var_mapping)
+            {
+                if (arg_mapping.first == arg)
+                {
                     arg = arg_mapping.second;
                     break;
                 }
@@ -849,57 +1098,86 @@ pair<bool,pair<literal,bool>> TDG::check_predicates(task t, method parent_method
     bool executable = true;
     bool expansion_needed = false;
     literal expansion_pred;
-    if(tdg[t_id].type == PT) {
-        for(literal& prec : t_precs) {
+    if (tdg[t_id].type == PT)
+    {
+        for (literal &prec : t_precs)
+        {
             bool found_prec = false;
-            for(literal& state : world_state) {
+            for (literal &state : world_state)
+            {
                 bool same_predicate = is_same_predicate(prec, state);
 
-                if(same_predicate) { //Dealing with same predicate with same arguments
+                if (same_predicate)
+                { // Dealing with same predicate with same arguments
                     found_prec = true;
-                    if(prec.isComparisonExpression) {
+                    if (prec.isComparisonExpression)
+                    {
                         string comparison_op = prec.comparison_op_and_value.first;
-                        variant<int,float> comparison_value = prec.comparison_op_and_value.second;
+                        variant<int, float> comparison_value = prec.comparison_op_and_value.second;
 
-                        if(comparison_op == equal_comparison_op) {
-                            if(holds_alternative<int>(state.costValue)) {
+                        if (comparison_op == equal_comparison_op)
+                        {
+                            if (holds_alternative<int>(state.costValue))
+                            {
                                 int state_value = std::get<int>(state.costValue);
 
-                                if(holds_alternative<int>(comparison_value)) {
+                                if (holds_alternative<int>(comparison_value))
+                                {
                                     executable = (state_value == std::get<int>(comparison_value));
-                                } else {
+                                }
+                                else
+                                {
                                     executable = compare_int_and_float(state_value, std::get<float>(comparison_value));
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 float state_value = std::get<float>(state.costValue);
 
-                                if(holds_alternative<int>(comparison_value)) {
+                                if (holds_alternative<int>(comparison_value))
+                                {
                                     executable = compare_int_and_float(std::get<int>(comparison_value), state_value);
-                                } else {
+                                }
+                                else
+                                {
                                     executable = compare_floats(state_value, std::get<float>(comparison_value));
                                 }
                             }
-                        } else if(comparison_op == greater_comparison_op) {
-                            if(holds_alternative<int>(state.costValue)) {
+                        }
+                        else if (comparison_op == greater_comparison_op)
+                        {
+                            if (holds_alternative<int>(state.costValue))
+                            {
                                 int state_value = std::get<int>(state.costValue);
 
-                                if(holds_alternative<int>(comparison_value)) {
+                                if (holds_alternative<int>(comparison_value))
+                                {
                                     executable = (state.costValue > comparison_value);
-                                } else {
+                                }
+                                else
+                                {
                                     executable = greater_than_int_and_float(state_value, std::get<float>(comparison_value));
                                 }
-                            } else {
+                            }
+                            else
+                            {
                                 float state_value = std::get<float>(state.costValue);
 
-                                if(holds_alternative<int>(comparison_value)) {
+                                if (holds_alternative<int>(comparison_value))
+                                {
                                     executable = greater_than_float_and_int(std::get<int>(comparison_value), state_value);
-                                } else {
+                                }
+                                else
+                                {
                                     executable = greater_than_floats(state_value, std::get<float>(comparison_value));
                                 }
                             }
                         }
-                    } else {
-                        if(!((prec.positive && state.positive) || (!prec.positive && !state.positive))) {
+                    }
+                    else
+                    {
+                        if (!((prec.positive && state.positive) || (!prec.positive && !state.positive)))
+                        {
                             executable = false;
                         }
                     }
@@ -908,33 +1186,45 @@ pair<bool,pair<literal,bool>> TDG::check_predicates(task t, method parent_method
                 }
             }
 
-            if(!found_prec) {
-                if(prec.isComparisonExpression) {
+            if (!found_prec)
+            {
+                if (prec.isComparisonExpression)
+                {
                     literal l = prec;
-                    
+
                     string comparison_op = l.comparison_op_and_value.first;
-                    variant<int,float> comparison_value = l.comparison_op_and_value.second;
-                    if(l.isComparisonExpression) {
-                        if(comparison_op == equal_comparison_op) {
+                    variant<int, float> comparison_value = l.comparison_op_and_value.second;
+                    if (l.isComparisonExpression)
+                    {
+                        if (comparison_op == equal_comparison_op)
+                        {
                             l.costValue = comparison_value;
-                        } else if(comparison_op == greater_comparison_op) {
+                        }
+                        else if (comparison_op == greater_comparison_op)
+                        {
                             expansion_needed = true;
                             expansion_pred = l;
 
-                            variant<int,float> expansion_offset = 0;
-                            for(unsigned int i = ordering_info.second+1; i < ordering_info.first.size(); i++) {
+                            variant<int, float> expansion_offset = 0;
+                            for (unsigned int i = ordering_info.second + 1; i < ordering_info.first.size(); i++)
+                            {
                                 task ch = tdg[i].t;
 
-                                vector<pair<string,string>> ch_var_mapping;
-                                for(auto subtask : parent_method.ps) {
-                                    if(subtask.task == ch.name) {
+                                vector<pair<string, string>> ch_var_mapping;
+                                for (auto subtask : parent_method.ps)
+                                {
+                                    if (subtask.task == ch.name)
+                                    {
                                         int index = 0;
-                                        for(string var : subtask.args) {
+                                        for (string var : subtask.args)
+                                        {
                                             string aux;
-                                            for(auto mapping : global_var_mapping) {
-                                                if(mapping.first == var) { //Found mapping from methods
+                                            for (auto mapping : global_var_mapping)
+                                            {
+                                                if (mapping.first == var)
+                                                { // Found mapping from methods
                                                     aux = mapping.second;
-                                                    ch_var_mapping.push_back(make_pair(ch.vars.at(index).first,aux));
+                                                    ch_var_mapping.push_back(make_pair(ch.vars.at(index).first, aux));
                                                     break;
                                                 }
                                             }
@@ -946,42 +1236,60 @@ pair<bool,pair<literal,bool>> TDG::check_predicates(task t, method parent_method
                                     }
                                 }
 
-                                variant<int,float> ch_sum = check_predicate_assignments(ch, ch_var_mapping, expansion_pred, expansion_offset, world_state);
+                                variant<int, float> ch_sum = check_predicate_assignments(ch, ch_var_mapping, expansion_pred, expansion_offset, world_state);
 
-                                if(holds_alternative<int>(expansion_offset)) {
+                                if (holds_alternative<int>(expansion_offset))
+                                {
                                     int current_sum = std::get<int>(expansion_offset);
 
-                                    if(holds_alternative<int>(ch_sum)) {
+                                    if (holds_alternative<int>(ch_sum))
+                                    {
                                         expansion_offset = current_sum + std::get<int>(ch_sum);
-                                    } else {
+                                    }
+                                    else
+                                    {
                                         expansion_offset = static_cast<float>(current_sum) + std::get<float>(ch_sum);
                                     }
-                                } else {
+                                }
+                                else
+                                {
                                     float current_sum = std::get<float>(expansion_offset);
 
-                                    if(holds_alternative<int>(ch_sum)) {
+                                    if (holds_alternative<int>(ch_sum))
+                                    {
                                         expansion_offset = current_sum + static_cast<float>(std::get<int>(ch_sum));
-                                    } else {
+                                    }
+                                    else
+                                    {
                                         expansion_offset = current_sum + std::get<float>(ch_sum);
                                     }
                                 }
                             }
 
-                            if(holds_alternative<int>(comparison_value)) {
+                            if (holds_alternative<int>(comparison_value))
+                            {
                                 int comp_val = std::get<int>(comparison_value);
 
-                                if(holds_alternative<int>(expansion_offset)) {
-                                    l.costValue = comp_val + std::get<int>(expansion_offset)*(-1);
-                                } else {
-                                    l.costValue = static_cast<float>(comp_val) + std::get<float>(expansion_offset)*(-1);
+                                if (holds_alternative<int>(expansion_offset))
+                                {
+                                    l.costValue = comp_val + std::get<int>(expansion_offset) * (-1);
                                 }
-                            } else {
+                                else
+                                {
+                                    l.costValue = static_cast<float>(comp_val) + std::get<float>(expansion_offset) * (-1);
+                                }
+                            }
+                            else
+                            {
                                 float comp_val = std::get<float>(comparison_value);
-                                
-                                if(holds_alternative<int>(expansion_offset)) {
-                                    l.costValue = comp_val + static_cast<float>(std::get<int>(expansion_offset))*(-1);
-                                } else {
-                                    l.costValue = comp_val + std::get<float>(expansion_offset)*(-1);
+
+                                if (holds_alternative<int>(expansion_offset))
+                                {
+                                    l.costValue = comp_val + static_cast<float>(std::get<int>(expansion_offset)) * (-1);
+                                }
+                                else
+                                {
+                                    l.costValue = comp_val + std::get<float>(expansion_offset) * (-1);
                                 }
                             }
                         }
@@ -990,20 +1298,24 @@ pair<bool,pair<literal,bool>> TDG::check_predicates(task t, method parent_method
                     l.isCostChangeExpression = true;
 
                     precs_to_add.push_back(l);
-                } else {
+                }
+                else
+                {
                     precs_to_add.push_back(prec);
                 }
             }
         }
 
-        if(executable) {
-            for(literal prec : precs_to_add) {
+        if (executable)
+        {
+            for (literal prec : precs_to_add)
+            {
                 world_state.push_back(prec);
             }
         }
     }
 
-    return make_pair(executable,make_pair(expansion_pred,expansion_needed));
+    return make_pair(executable, make_pair(expansion_pred, expansion_needed));
 }
 
 /*
@@ -1015,26 +1327,35 @@ pair<bool,pair<literal,bool>> TDG::check_predicates(task t, method parent_method
     @ Input 2: A reference to the world state
     @ Input 3: The variable mapping with respect to the TDG's root abstract task
     @ Output: Void. The reference to the world state is changed
-*/ 
-void TDG::change_world_state(task t, vector<literal>& world_state, vector<pair<string,string>> variable_mapping) {
+*/
+void TDG::change_world_state(task t, vector<literal> &world_state, vector<pair<string, string>> variable_mapping)
+{
     vector<literal> t_effs = t.eff;
     vector<literal> t_costexp = t.costExpression;
 
-    //Rename predicates variables
-    for(literal& eff : t_effs) {
-        for(string& arg : eff.arguments) {
-            for(pair<string,string>& arg_mapping : variable_mapping) {
-                if(arg_mapping.first == arg) {
+    // Rename predicates variables
+    for (literal &eff : t_effs)
+    {
+        for (string &arg : eff.arguments)
+        {
+            for (pair<string, string> &arg_mapping : variable_mapping)
+            {
+                if (arg_mapping.first == arg)
+                {
                     arg = arg_mapping.second;
                     break;
                 }
             }
         }
     }
-    for(literal& cexp : t_costexp) {
-        for(string& arg : cexp.arguments) {
-            for(pair<string,string>& arg_mapping : variable_mapping) {
-                if(arg_mapping.first == arg) {
+    for (literal &cexp : t_costexp)
+    {
+        for (string &arg : cexp.arguments)
+        {
+            for (pair<string, string> &arg_mapping : variable_mapping)
+            {
+                if (arg_mapping.first == arg)
+                {
                     arg = arg_mapping.second;
                     break;
                 }
@@ -1042,16 +1363,20 @@ void TDG::change_world_state(task t, vector<literal>& world_state, vector<pair<s
         }
     }
 
-    for(literal& eff : t_effs) {
+    for (literal &eff : t_effs)
+    {
         bool found_pred = false;
         vector<literal>::iterator state;
-        for(state = world_state.begin();state != world_state.end();++state) {
+        for (state = world_state.begin(); state != world_state.end(); ++state)
+        {
             bool same_predicate = is_same_predicate(*state, eff);
 
-            if(same_predicate) { //Dealing with same predicate with same arguments
+            if (same_predicate)
+            { // Dealing with same predicate with same arguments
                 found_pred = true;
 
-                if(((eff.positive && !state->positive) || (!eff.positive && state->positive))) {
+                if (((eff.positive && !state->positive) || (!eff.positive && state->positive)))
+                {
                     state->positive = eff.positive;
                 }
 
@@ -1059,37 +1384,53 @@ void TDG::change_world_state(task t, vector<literal>& world_state, vector<pair<s
             }
         }
 
-        if(!found_pred) { // We don't need to change cost change expressions, we only care about their cost values
+        if (!found_pred)
+        { // We don't need to change cost change expressions, we only care about their cost values
             world_state.push_back(eff);
         }
     }
 
-    for(literal& cexp : t_costexp) {
+    for (literal &cexp : t_costexp)
+    {
         bool found_pred = false;
         vector<literal>::iterator state;
-        for(state = world_state.begin();state != world_state.end();++state) {
+        for (state = world_state.begin(); state != world_state.end(); ++state)
+        {
             bool same_predicate = is_same_predicate(*state, cexp);
 
-            if(same_predicate) { //Dealing with same predicate with same arguments
+            if (same_predicate)
+            { // Dealing with same predicate with same arguments
                 found_pred = true;
 
-                if(cexp.isAssignCostChangeExpression) {
+                if (cexp.isAssignCostChangeExpression)
+                {
                     state->costValue = cexp.costValue;
-                } else {
-                    if(holds_alternative<int>(state->costValue)) {
+                }
+                else
+                {
+                    if (holds_alternative<int>(state->costValue))
+                    {
                         int state_value = std::get<int>(state->costValue);
 
-                        if(holds_alternative<int>(cexp.costValue)) {
+                        if (holds_alternative<int>(cexp.costValue))
+                        {
                             state->costValue = state_value + std::get<int>(cexp.costValue);
-                        } else {
+                        }
+                        else
+                        {
                             state->costValue = static_cast<float>(state_value) + std::get<float>(cexp.costValue);
                         }
-                    } else {
+                    }
+                    else
+                    {
                         float state_value = std::get<float>(state->costValue);
 
-                        if(holds_alternative<int>(cexp.costValue)) {
+                        if (holds_alternative<int>(cexp.costValue))
+                        {
                             state->costValue = state_value + static_cast<float>(std::get<int>(cexp.costValue));
-                        } else {
+                        }
+                        else
+                        {
                             state->costValue = state_value + std::get<float>(cexp.costValue);
                         }
                     }
@@ -1098,10 +1439,11 @@ void TDG::change_world_state(task t, vector<literal>& world_state, vector<pair<s
                 state->isCostChangeExpression = true;
 
                 break;
-            } 
+            }
         }
 
-        if(!found_pred) { // We don't need to change cost change expressions, we only care about their cost values
+        if (!found_pred)
+        { // We don't need to change cost change expressions, we only care about their cost values
             world_state.push_back(cexp);
         }
     }
@@ -1114,13 +1456,18 @@ void TDG::change_world_state(task t, vector<literal>& world_state, vector<pair<s
     @ Input 1: A reference to the task being considered
     @ Input 2: The variable mapping between the task and the TDG's root abstract task
     @ Output: Void. The reference to the task is modified
-*/ 
-void TDG::variable_renaming(task& t, vector<pair<string,string>> var_mapping) {
-    //Rename preconditions
-    for(literal& prec : t.prec) {
-        for(string& arg : prec.arguments) {
-            for(pair<string,string>& arg_mapping : var_mapping) {
-                if(arg_mapping.first == arg) {
+*/
+void TDG::variable_renaming(task &t, vector<pair<string, string>> var_mapping)
+{
+    // Rename preconditions
+    for (literal &prec : t.prec)
+    {
+        for (string &arg : prec.arguments)
+        {
+            for (pair<string, string> &arg_mapping : var_mapping)
+            {
+                if (arg_mapping.first == arg)
+                {
                     arg = arg_mapping.second;
                     break;
                 }
@@ -1128,11 +1475,15 @@ void TDG::variable_renaming(task& t, vector<pair<string,string>> var_mapping) {
         }
     }
 
-    //Rename effects
-    for(literal& eff : t.eff) {
-        for(string& arg : eff.arguments) {
-            for(pair<string,string>& arg_mapping : var_mapping) {
-                if(arg_mapping.first == arg) {
+    // Rename effects
+    for (literal &eff : t.eff)
+    {
+        for (string &arg : eff.arguments)
+        {
+            for (pair<string, string> &arg_mapping : var_mapping)
+            {
+                if (arg_mapping.first == arg)
+                {
                     arg = arg_mapping.second;
                     break;
                 }
@@ -1140,10 +1491,14 @@ void TDG::variable_renaming(task& t, vector<pair<string,string>> var_mapping) {
         }
     }
 
-    for(literal& cexp : t.costExpression) {
-        for(string& arg : cexp.arguments) {
-            for(pair<string,string>& arg_mapping : var_mapping) {
-                if(arg_mapping.first == arg) {
+    for (literal &cexp : t.costExpression)
+    {
+        for (string &arg : cexp.arguments)
+        {
+            for (pair<string, string> &arg_mapping : var_mapping)
+            {
+                if (arg_mapping.first == arg)
+                {
                     arg = arg_mapping.second;
                     break;
                 }
@@ -1151,10 +1506,13 @@ void TDG::variable_renaming(task& t, vector<pair<string,string>> var_mapping) {
         }
     }
 
-    //Rename task variables
-    for(pair<string,string>& var : t.vars) {
-        for(pair<string,string>& arg_mapping : var_mapping) {
-            if(arg_mapping.first == var.first) {
+    // Rename task variables
+    for (pair<string, string> &var : t.vars)
+    {
+        for (pair<string, string> &arg_mapping : var_mapping)
+        {
+            if (arg_mapping.first == var.first)
+            {
                 var.first = arg_mapping.second;
                 break;
             }
@@ -1162,11 +1520,15 @@ void TDG::variable_renaming(task& t, vector<pair<string,string>> var_mapping) {
     }
 }
 
-void TDG::method_variable_renaming(method& m, vector<pair<string,string>> var_mapping) {
-    //Rename method variables
-    for(pair<string,string>& var : m.vars) {
-        for(pair<string,string>& arg_mapping : var_mapping) {
-            if(arg_mapping.first == var.first) {
+void TDG::method_variable_renaming(method &m, vector<pair<string, string>> var_mapping)
+{
+    // Rename method variables
+    for (pair<string, string> &var : m.vars)
+    {
+        for (pair<string, string> &arg_mapping : var_mapping)
+        {
+            if (arg_mapping.first == var.first)
+            {
                 var.first = arg_mapping.second;
                 break;
             }
@@ -1181,14 +1543,18 @@ void TDG::method_variable_renaming(method& m, vector<pair<string,string>> var_ma
     @ Input 1: The method being considered
     @ Input 2: The ID's of this method's children nodes in the TDG
     @ Output: The vector of the possible orderings by means of task ID's
-*/ 
-vector<vector<int>> TDG::find_method_possible_orderings(method m, vector<int> children) {
-    map<string,int> plan_step_id_map;
+*/
+vector<vector<int>> TDG::find_method_possible_orderings(method m, vector<int> children)
+{
+    map<string, int> plan_step_id_map;
 
     set<int> considered_children;
-    for(plan_step ps : m.ps) {
-        for(int c : children) {
-            if(tdg[c].t.name == ps.task && considered_children.find(c) == considered_children.end()) {
+    for (plan_step ps : m.ps)
+    {
+        for (int c : children)
+        {
+            if (tdg[c].t.name == ps.task && considered_children.find(c) == considered_children.end())
+            {
                 plan_step_id_map[ps.id] = c;
                 considered_children.insert(c);
                 break;
@@ -1196,13 +1562,17 @@ vector<vector<int>> TDG::find_method_possible_orderings(method m, vector<int> ch
         }
     }
 
-    map<int,set<int>> precedences_map;
-    for(pair<string,string> o : m.ordering) {
-        if(precedences_map.find(plan_step_id_map[o.first]) == precedences_map.end()) {
+    map<int, set<int>> precedences_map;
+    for (pair<string, string> o : m.ordering)
+    {
+        if (precedences_map.find(plan_step_id_map[o.first]) == precedences_map.end())
+        {
             set<int> precedence;
             precedence.insert(plan_step_id_map[o.second]);
             precedences_map[plan_step_id_map[o.first]] = precedence;
-        } else {
+        }
+        else
+        {
             precedences_map[plan_step_id_map[o.first]].insert(plan_step_id_map[o.second]);
         }
     }
@@ -1210,7 +1580,8 @@ vector<vector<int>> TDG::find_method_possible_orderings(method m, vector<int> ch
     vector<vector<int>> possible_orderings;
 
     set<int> children_set;
-    for(int c : children) {
+    for (int c : children)
+    {
         children_set.insert(c);
     }
 
@@ -1227,22 +1598,29 @@ vector<vector<int>> TDG::find_method_possible_orderings(method m, vector<int> ch
     @ Input 2: The orderings generated so far
     @ Input 3: The task ID's to be inserted
     @ Output: The possible orderings generated in this depth of the recursion
-*/ 
-vector<vector<int>> TDG::recursive_method_possible_ordering(map<int,set<int>> precedence_map, vector<vector<int>> current_orderings, set<int> values_to_insert) {
+*/
+vector<vector<int>> TDG::recursive_method_possible_ordering(map<int, set<int>> precedence_map, vector<vector<int>> current_orderings, set<int> values_to_insert)
+{
     vector<vector<int>> new_orderings;
 
-    if(values_to_insert.size() > 0) {
-        for(int val : values_to_insert) {
+    if (values_to_insert.size() > 0)
+    {
+        for (int val : values_to_insert)
+        {
             bool can_insert_value = true;
-            map<int,set<int>>::iterator precedences_iterator;
-            for(precedences_iterator = precedence_map.begin();precedences_iterator != precedence_map.end();++precedences_iterator) {
-                if(precedences_iterator->first != val) {
+            map<int, set<int>>::iterator precedences_iterator;
+            for (precedences_iterator = precedence_map.begin(); precedences_iterator != precedence_map.end(); ++precedences_iterator)
+            {
+                if (precedences_iterator->first != val)
+                {
                     /*
                         If we have a value that is involved in a precedence constraint with the current value being checked and it was not inserted we
                         cannot insert the current value yet
                     */
-                    if(values_to_insert.find(precedences_iterator->first) != values_to_insert.end()) {
-                        if(precedences_iterator->second.find(val) != precedences_iterator->second.end()) {
+                    if (values_to_insert.find(precedences_iterator->first) != values_to_insert.end())
+                    {
+                        if (precedences_iterator->second.find(val) != precedences_iterator->second.end())
+                        {
                             can_insert_value = false;
                             break;
                         }
@@ -1250,69 +1628,96 @@ vector<vector<int>> TDG::recursive_method_possible_ordering(map<int,set<int>> pr
                 }
             }
 
-            if(can_insert_value) {
+            if (can_insert_value)
+            {
                 set<int> updated_values_to_insert = values_to_insert;
                 updated_values_to_insert.erase(val);
 
                 vector<vector<int>> updated_current_orderings = current_orderings;
 
-                if(current_orderings.size() > 0) {
-                    for(vector<int>& ordering : updated_current_orderings) {
+                if (current_orderings.size() > 0)
+                {
+                    for (vector<int> &ordering : updated_current_orderings)
+                    {
                         ordering.push_back(val);
                     }
-                } else {
+                }
+                else
+                {
                     vector<int> first_ordering;
                     first_ordering.push_back(val);
                     updated_current_orderings.push_back(first_ordering);
                 }
 
-                vector<vector<int>> aux = recursive_method_possible_ordering(precedence_map,updated_current_orderings,updated_values_to_insert);
-                for(vector<int> o : aux) {
+                vector<vector<int>> aux = recursive_method_possible_ordering(precedence_map, updated_current_orderings, updated_values_to_insert);
+                for (vector<int> o : aux)
+                {
                     new_orderings.push_back(o);
                 }
             }
         }
-    } else {
+    }
+    else
+    {
         new_orderings = current_orderings;
     }
 
     return new_orderings;
 }
 
-variant<int,float> TDG::check_expansion_predicate_assignments(task t, vector<pair<string,string>> var_mapping, literal expansion_pred) {
+variant<int, float> TDG::check_expansion_predicate_assignments(task t, vector<pair<string, string>> var_mapping, literal expansion_pred)
+{
     variable_renaming(t, var_mapping);
 
-    variant<int,float> sum_of_assignments = 0;
+    variant<int, float> sum_of_assignments = 0;
 
-    for(literal eff : t.costExpression) {
-        if(holds_alternative<int>(sum_of_assignments)) {
+    for (literal eff : t.costExpression)
+    {
+        if (holds_alternative<int>(sum_of_assignments))
+        {
             int sum = std::get<int>(sum_of_assignments);
 
-            if(eff.isCostChangeExpression && !eff.isAssignCostChangeExpression) {
-                if(is_same_predicate(eff,expansion_pred)) {
-                    if(holds_alternative<int>(eff.costValue)) {
+            if (eff.isCostChangeExpression && !eff.isAssignCostChangeExpression)
+            {
+                if (is_same_predicate(eff, expansion_pred))
+                {
+                    if (holds_alternative<int>(eff.costValue))
+                    {
                         sum_of_assignments = sum + std::get<int>(eff.costValue);
-                    } else {
+                    }
+                    else
+                    {
                         sum_of_assignments = static_cast<float>(sum) + std::get<float>(eff.costValue);
                     }
                 }
-            } else {
+            }
+            else
+            {
                 string assignment_in_expansion_error = "Assignment expressions on expansion cycle are not allowed";
 
                 throw std::runtime_error(assignment_in_expansion_error);
             }
-        } else {
+        }
+        else
+        {
             float sum = std::get<float>(sum_of_assignments);
 
-            if(eff.isCostChangeExpression) {
-                if(is_same_predicate(eff,expansion_pred)) {
-                    if(holds_alternative<int>(eff.costValue)) {
+            if (eff.isCostChangeExpression)
+            {
+                if (is_same_predicate(eff, expansion_pred))
+                {
+                    if (holds_alternative<int>(eff.costValue))
+                    {
                         sum_of_assignments = sum + static_cast<float>(std::get<int>(eff.costValue));
-                    } else {
+                    }
+                    else
+                    {
                         sum_of_assignments = sum + std::get<float>(eff.costValue);
                     }
                 }
-            } else {
+            }
+            else
+            {
                 string assignment_in_expansion_error = "Assignment expressions on expansion cycle are not allowed";
 
                 throw std::runtime_error(assignment_in_expansion_error);
@@ -1323,95 +1728,141 @@ variant<int,float> TDG::check_expansion_predicate_assignments(task t, vector<pai
     return sum_of_assignments;
 }
 
-std::variant<int,float> TDG::check_predicate_assignments(task t, vector<pair<string,string>> var_mapping, literal pred, variant<int,float> current_sum, vector<literal> world_state) {
+std::variant<int, float> TDG::check_predicate_assignments(task t, vector<pair<string, string>> var_mapping, literal pred, variant<int, float> current_sum, vector<literal> world_state)
+{
     variable_renaming(t, var_mapping);
 
-    variant<int,float> sum_of_assignments = 0;
+    variant<int, float> sum_of_assignments = 0;
 
-    for(literal eff : t.costExpression) {
-        if(holds_alternative<int>(sum_of_assignments)) {
+    for (literal eff : t.costExpression)
+    {
+        if (holds_alternative<int>(sum_of_assignments))
+        {
             int sum = std::get<int>(sum_of_assignments);
 
-            if(eff.isCostChangeExpression && !eff.isAssignCostChangeExpression) {
-                if(is_same_predicate(eff,pred)) {
-                    if(holds_alternative<int>(eff.costValue)) {
+            if (eff.isCostChangeExpression && !eff.isAssignCostChangeExpression)
+            {
+                if (is_same_predicate(eff, pred))
+                {
+                    if (holds_alternative<int>(eff.costValue))
+                    {
                         sum_of_assignments = sum + std::get<int>(eff.costValue);
-                    } else {
+                    }
+                    else
+                    {
                         sum_of_assignments = static_cast<float>(sum) + std::get<float>(eff.costValue);
                     }
                 }
-            } else {
+            }
+            else
+            {
                 literal state;
 
-                for(literal ws : world_state) {
-                    if(is_same_predicate(ws,pred)) {
+                for (literal ws : world_state)
+                {
+                    if (is_same_predicate(ws, pred))
+                    {
                         state = ws;
                     }
                 }
 
-                variant<int,float> state_val;
-                if(state.predicate == pred.predicate) {
+                variant<int, float> state_val;
+                if (state.predicate == pred.predicate)
+                {
                     state_val = state.costValue;
-                } else {
+                }
+                else
+                {
                     state_val = pred.costValue;
                 }
 
-                if(is_same_predicate(eff,pred)) {
-                    if(holds_alternative<int>(sum_of_assignments)) {
+                if (is_same_predicate(eff, pred))
+                {
+                    if (holds_alternative<int>(sum_of_assignments))
+                    {
                         int sum = std::get<int>(sum_of_assignments);
 
-                        if(holds_alternative<int>(eff.costValue)) {
+                        if (holds_alternative<int>(eff.costValue))
+                        {
                             int eff_val = std::get<int>(eff.costValue);
 
-                            if(holds_alternative<int>(state_val)) {
+                            if (holds_alternative<int>(state_val))
+                            {
                                 sum_of_assignments = sum + (std::get<int>(state_val) - sum - eff_val);
-                            } else {
+                            }
+                            else
+                            {
                                 sum_of_assignments = static_cast<float>(sum) + (std::get<float>(state_val) - static_cast<float>(sum) - static_cast<float>(eff_val));
                             }
-                        } else {
+                        }
+                        else
+                        {
                             float eff_val = std::get<float>(eff.costValue);
 
-                            if(holds_alternative<int>(state_val)) {
+                            if (holds_alternative<int>(state_val))
+                            {
                                 sum_of_assignments = static_cast<float>(sum) + (static_cast<float>(std::get<int>(state_val)) - static_cast<float>(sum) - eff_val);
-                            } else {
+                            }
+                            else
+                            {
                                 sum_of_assignments = static_cast<float>(sum) + (std::get<float>(state_val) - static_cast<float>(sum) - eff_val);
                             }
                         }
-                    } else {
+                    }
+                    else
+                    {
                         float sum = std::get<float>(sum_of_assignments);
 
-                        if(holds_alternative<int>(eff.costValue)) {
+                        if (holds_alternative<int>(eff.costValue))
+                        {
                             int eff_val = std::get<int>(eff.costValue);
 
-                            if(holds_alternative<int>(state_val)) {
+                            if (holds_alternative<int>(state_val))
+                            {
                                 sum_of_assignments = sum + (static_cast<float>(std::get<int>(state_val)) - sum - static_cast<float>(eff_val));
-                            } else {
+                            }
+                            else
+                            {
                                 sum_of_assignments = sum + (std::get<float>(state_val) - sum - static_cast<float>(eff_val));
                             }
-                        } else {
+                        }
+                        else
+                        {
                             float eff_val = std::get<float>(eff.costValue);
 
-                            if(holds_alternative<int>(state_val)) {
+                            if (holds_alternative<int>(state_val))
+                            {
                                 sum_of_assignments = sum + (static_cast<float>(std::get<int>(state_val)) - sum - eff_val);
-                            } else {
+                            }
+                            else
+                            {
                                 sum_of_assignments = sum + (std::get<float>(state_val) - sum - eff_val);
                             }
                         }
                     }
                 }
             }
-        } else {
+        }
+        else
+        {
             float sum = std::get<float>(sum_of_assignments);
 
-            if(eff.isCostChangeExpression) {
-                if(is_same_predicate(eff,pred)) {
-                    if(holds_alternative<int>(eff.costValue)) {
+            if (eff.isCostChangeExpression)
+            {
+                if (is_same_predicate(eff, pred))
+                {
+                    if (holds_alternative<int>(eff.costValue))
+                    {
                         sum_of_assignments = sum + static_cast<float>(std::get<int>(eff.costValue));
-                    } else {
+                    }
+                    else
+                    {
                         sum_of_assignments = sum + std::get<float>(eff.costValue);
                     }
                 }
-            } else {
+            }
+            else
+            {
                 // TODO
             }
         }

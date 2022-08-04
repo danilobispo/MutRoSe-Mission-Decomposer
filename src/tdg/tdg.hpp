@@ -2,6 +2,7 @@
 #define __TDG
 
 #include <vector>
+#include <fstream>
 
 #include "../utils/domain.hpp"
 #include "../utils/parsetree.hpp"
@@ -72,6 +73,7 @@ class TDG {
         void method_variable_renaming(method& m, std::vector<std::pair<std::string,std::string>> var_mapping);
         void print_edges();
         void print_method_possible_orderings(std::vector<std::vector<int>> possible_orderings, NodeData n);
+        void print_method_possible_orderings_to_file(std::vector<std::vector<int>> possible_orderings, NodeData n);
 
         std::vector<int> DFS_visit();
 
