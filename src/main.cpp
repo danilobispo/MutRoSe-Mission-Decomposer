@@ -375,9 +375,7 @@ int main(int argc, char** argv) {
 			std::cout << "Exiting edge " << at.name << std::endl;
 		}
 
-		
-
-
+			
 		at_decomposition_paths[at.name] = t.retrieve_possible_decompositions();
 		if(ihtn_output) {
 			at_complete_decomposition_paths[at.name] = t.retrieve_possible_complete_decompositions();

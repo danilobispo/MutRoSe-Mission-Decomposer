@@ -103,6 +103,7 @@ vector<DecompositionPath> TDG::decomposition_recursion(vector<int> dfs_nodes, in
     int node = dfs_nodes.at(current_pos);
 
     NodeData n = tdg[node];
+    // write_node_data_to_file(n);
 
     vector<DecompositionPath> generated_paths;
     if (n.type == M)
@@ -118,8 +119,8 @@ vector<DecompositionPath> TDG::decomposition_recursion(vector<int> dfs_nodes, in
         if (verbose)
         {
             print_method_possible_orderings(possible_orderings, n);
-            print_method_possible_orderings_to_file(possible_orderings, n);
         }
+        print_method_possible_orderings_to_file(possible_orderings, n);
 
         bool expansion_needed = false;
         literal expansion_pred;
@@ -1007,7 +1008,19 @@ void TDG::print_method_possible_orderings_to_file(vector<vector<int>> possible_o
                 vector<literal> t_effs = tdg[t].t.eff;
                 for (literal &eff : t_effs)
                 { // If it has effect
-                    out << "__task_effect_" << eff.predicate << " ";
+                    out << "__task_effect_";
+                    for (string argument : eff.arguments)
+                    {
+                        if (eff.positive)
+                        {
+                            out << eff.predicate << "_true";
+                        }
+                        else
+                        {
+                            out << eff.predicate << "_false";
+                        }
+                        out << "_argument_" << argument << " ";
+                    }
                 }
             }
         }
@@ -1015,6 +1028,18 @@ void TDG::print_method_possible_orderings_to_file(vector<vector<int>> possible_o
     }
     out.close();
 }
+
+// void write_node_data_to_file(NodeData n){
+//     std::ofstream ofs;
+//     ofs.open("node_data.txt", std::ofstream::out | std::ofstream::trunc);
+//     ofs << "Name: " << n.t.name;
+//     ofs << "Type: " << n.type;
+    
+    
+    
+    
+//     ofs.close();
+// }
 
 /*
     Function: add_task_path
