@@ -1,0 +1,45 @@
+Name: GetFood
+food-pickup
+Name: DeliverToTable
+table-deliver
+Name: DeliverToFetch
+fetch-deliver
+Name: FetchMeal
+fetch-meal-with-human
+fetch-meal-with-robot
+Name: FetchMeal
+fetch-meal-with-human
+fetch-meal-with-robot
+Name: PickupDishes
+pickup-with-door-opening
+pickup-without-door-opening
+Name: PickDishesTwoRobotsAtLocation
+pick-dishes-two-robots-at-location
+Name: PickDishes
+pick-dishes-with-human
+pick-dishes-with-robot-at-location
+pick-dishes-with-robot-not-at-location
+Name: PickDishesOneRobotAtLocation
+pick-dishes-one-robot-at-location
+Name: PickDishes
+pick-dishes-with-human
+pick-dishes-with-robot-at-location
+pick-dishes-with-robot-not-at-location
+Name: PickDishesTwoRobotsAtLocation
+pick-dishes-two-robots-at-location
+Name: PickDishes
+pick-dishes-with-human
+pick-dishes-with-robot-at-location
+pick-dishes-with-robot-not-at-location
+Name: PickDishesOneRobotAtLocation
+pick-dishes-one-robot-at-location
+Name: PickDishes
+pick-dishes-with-human
+pick-dishes-with-robot-at-location
+pick-dishes-with-robot-not-at-location
+Name: PickDishes
+pick-dishes-with-human
+pick-dishes-with-robot-at-location
+pick-dishes-with-robot-not-at-location
+Name: RetrieveDishes
+dishes-retrieval

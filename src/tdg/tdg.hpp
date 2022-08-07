@@ -74,7 +74,7 @@ class TDG {
         void print_edges();
         void print_method_possible_orderings(std::vector<std::vector<int>> possible_orderings, NodeData n);
         void print_method_possible_orderings_to_file(std::vector<std::vector<int>> possible_orderings, NodeData n);
-        // void write_node_data_to_file(NodeData n);
+        void write_node_data_to_file(NodeData n);
 
         std::vector<int> DFS_visit();
 
