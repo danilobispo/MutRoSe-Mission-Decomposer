@@ -1008,7 +1008,7 @@ void TDG::print_method_possible_orderings_to_file(vector<vector<int>> possible_o
                 vector<literal> t_effs = tdg[t].t.eff;
                 for (literal &eff : t_effs)
                 { // If it has effect
-                    out << "__task_effect_";
+                    out << "__task_effect ";
                     for (string argument : eff.arguments)
                     {
                         if (eff.positive)
