@@ -366,6 +366,11 @@ int main(int argc, char** argv) {
 		std::ofstream ofs;
 		ofs.open("method_orderings.txt", std::ofstream::out | std::ofstream::trunc);
 		ofs.close();
+	// Clean file content before writing in function below
+		ofs.open("node_data.txt", std::ofstream::out | std::ofstream::trunc);
+		ofs.close();
+
+		
 	for(task at : abstract_tasks) {
 		TDG t(at, abstract_tasks, primitive_tasks, methods, verbose);
 
