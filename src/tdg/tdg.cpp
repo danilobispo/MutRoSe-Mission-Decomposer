@@ -503,7 +503,6 @@ vector<CompleteDecompositionPath> TDG::complete_decomposition_recursion(vector<i
 
     int node_index = current_index;
 
-
     vector<CompleteDecompositionPath> generated_paths;
     if (n.type == M)
     {
@@ -982,7 +981,8 @@ void TDG::print_method_possible_orderings_to_file(vector<vector<int>> possible_o
                 vector<string> capabilities = tdg[t].t.required_capabilities;
                 for (string cap : capabilities)
                 {
-                    out << "__method_capability " << cap << " ";
+                    out << "__method_capability ";
+                    out << cap << "_argument" << " ";
                 }
             }
             if (tdg[t].t.name.rfind("__method_precondition_", 0) == 0)
@@ -1030,16 +1030,24 @@ void TDG::print_method_possible_orderings_to_file(vector<vector<int>> possible_o
     out.close();
 }
 
-void TDG::write_node_data_to_file(NodeData n){
+void TDG::write_node_data_to_file(NodeData n)
+{
     std::ofstream ofs;
     ofs.open("node_data.txt", std::ofstream::out | std::ofstream::app);
-    if(n.type == AT){ // Abstract tasks (HDDL Tasks): 
+
+    if (n.type == AT)
+    { // Abstract tasks (HDDL Tasks):
         ofs << "Name: " << n.t.name << "\n";
-        for(int c : n.children){
+        for (int c : n.children)
+        {
             ofs << tdg[c].m.name << "\n";
         }
-    }    
-    
+    }
+    // if (n.type == M)
+    // {
+    //     n.m.ordering
+    // }
+
     ofs.close();
 }
 
