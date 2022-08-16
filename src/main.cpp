@@ -285,7 +285,7 @@ int main(int argc, char** argv) {
 			}
 		}
 	}
-
+	
 	expand_sorts();
 
 	flatten_mdp_tasks();
@@ -370,7 +370,11 @@ int main(int argc, char** argv) {
 		ofs.open("node_data.txt", std::ofstream::out | std::ofstream::trunc);
 		ofs.close();
 
-		
+	// Clean file content before writing in function below
+		ofs.open("types_and_variables_data.txt", std::ofstream::out | std::ofstream::trunc);
+		ofs.close();
+	
+
 	for(task at : abstract_tasks) {
 		TDG t(at, abstract_tasks, primitive_tasks, methods, verbose);
 

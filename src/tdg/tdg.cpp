@@ -65,6 +65,9 @@ vector<DecompositionPath> TDG::retrieve_possible_decompositions()
     vector<DecompositionPath> paths;
 
     vector<pair<string, string>> initial_vars = tdg[root].t.vars;
+
+    write_initial_vars_to_file(initial_vars);
+
     vector<literal> world_state;                   // Empty since root is an AT and doesn't introduce preconditions and effects
     vector<pair<string, string>> variable_mapping; // Empty since we only have original root vars
 
@@ -982,7 +985,7 @@ void TDG::print_method_possible_orderings_to_file(vector<vector<int>> possible_o
                 for (string cap : capabilities)
                 {
                     out << "__method_capability ";
-                    out << cap << "_argument" << " ";
+                    out << cap << " ";
                 }
             }
             if (tdg[t].t.name.rfind("__method_precondition_", 0) == 0)
@@ -1035,6 +1038,8 @@ void TDG::write_node_data_to_file(NodeData n)
     std::ofstream ofs;
     ofs.open("node_data.txt", std::ofstream::out | std::ofstream::app);
 
+    
+
     if (n.type == AT)
     { // Abstract tasks (HDDL Tasks):
         ofs << "Name: " << n.t.name << "\n";
@@ -1049,6 +1054,17 @@ void TDG::write_node_data_to_file(NodeData n)
     // }
 
     ofs.close();
+}
+
+void TDG::write_initial_vars_to_file(vector<pair<string, string>> initial_vars){
+    for(auto in_vars: initial_vars){
+        std::ofstream ofs;
+        ofs.open("types_and_variables_data.txt", std::ofstream::out | std::ofstream::app);
+
+        std::pair<string, string> var = in_vars;
+        ofs << "Variable name: " << var.first << " Variable Type: " << var.second << endl;
+        ofs.close();
+    }
 }
 
 /*
