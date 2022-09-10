@@ -985,7 +985,7 @@ void TDG::print_method_possible_orderings_to_file(vector<vector<int>> possible_o
                 for (string cap : capabilities)
                 {
                     out << "__method_capability ";
-                    out << cap << " ";
+                    out << "_argument_" << cap << " ";
                 }
             }
             if (tdg[t].t.name.rfind("__method_precondition_", 0) == 0)
