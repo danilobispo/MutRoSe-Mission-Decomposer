@@ -7,6 +7,7 @@
 #include <sstream>
 #include <variant>
 #include <algorithm>
+#include <fstream>
 
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/properties.hpp>
@@ -79,6 +80,7 @@ void check_gm_validity(GMGraph gm);
 void check_undefined_number_of_robots(GMGraph& gm, std::vector<task> abstract_tasks, std::vector<sort_definition> sort_definitions);
 void analyze_custom_props(std::map<std::string,std::string> custom_props, VertexData& v);
 void print_gm_nodes_info(GMGraph gm);
+void print_gm_nodes_info_to_file(GMGraph gm);
 void print_gm_var_map_info(std::map<std::string, std::variant<std::pair<std::string,std::string>,std::pair<std::vector<std::string>,std::string>>> gm_var_map);
 void print_gm(GMGraph gm);
 

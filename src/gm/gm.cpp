@@ -606,6 +606,45 @@ void print_gm_nodes_info(GMGraph gm) {
 	}
 }
 
+
+void print_gm_nodes_info_to_file(GMGraph gm) {
+    GMGraph::vertex_iterator i1, end1;
+	GMGraph::adjacency_iterator ai1, a_end1;
+
+    std::ofstream out("goal_nodes_info.txt", std::ios_base::app | std::ios_base::out);
+
+	for(boost::tie(i1,end1) = vertices(gm); i1 != end1; ++i1) {
+		VertexData node = gm[*i1];
+
+		out << "Node: " << node.text << std::endl;
+		out << "Context: " << std::endl;
+
+		Context c;
+			
+		if(node.custom_props.find(context_prop) != node.custom_props.end()) {
+			c = get<Context>(node.custom_props[context_prop]);
+
+			std::cout << "\tType: " << c.get_context_type() << std::endl;
+		} else {
+			std::cout << "\tNo Context" << std::endl;
+		}
+
+        out << "Parameters: " << std::endl;
+
+        if(node.custom_props.find(params_prop) != node.custom_props.end()) {
+            for(string param : get<vector<string>>(node.custom_props[params_prop])) {
+                std::cout << "\tParam: " << param << std::endl;
+            }
+        }
+
+        out << "Group? " << node.group << std::endl;
+        out << "Divisible? " << node.divisible << std::endl;
+			
+		out << std::endl;
+	}
+    out.close();
+}
+
 /*
     Function: print_gm_var_map_info
     Objective: Print information variable mappings

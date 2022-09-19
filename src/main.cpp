@@ -307,6 +307,12 @@ int main(int argc, char** argv) {
 
 		print_gm_nodes_info(gm);
 	}
+	// Clean file content before writing in function below
+	std::ofstream ofs;
+	ofs.open("goal_nodes_info.txt", std::ofstream::out | std::ofstream::trunc);
+	ofs.close();
+
+	print_gm_nodes_info_to_file(gm);
 
 	check_undefined_number_of_robots(gm, abstract_tasks, sort_definitions);
 
@@ -363,7 +369,6 @@ int main(int argc, char** argv) {
 	map<string,vector<CompleteDecompositionPath>> at_complete_decomposition_paths;
 
 	// Clean file content before writing in function below
-		std::ofstream ofs;
 		ofs.open("method_orderings.txt", std::ofstream::out | std::ofstream::trunc);
 		ofs.close();
 	// Clean file content before writing in function below
