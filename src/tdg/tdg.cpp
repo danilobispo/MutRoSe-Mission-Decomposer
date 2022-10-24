@@ -902,8 +902,8 @@ void TDG::print_edges()
             std::cout << t.m.name << endl;
         }
 
-        std::cout << "Source Type: " << s.type << std::endl;
-        std::cout << "Target type: " << t.type << std::endl;
+        // std::cout << "Source Type: " << s.type << std::endl;
+        // std::cout << "Target type: " << t.type << std::endl;
     }
 }
 

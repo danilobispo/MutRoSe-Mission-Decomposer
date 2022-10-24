@@ -96,9 +96,8 @@ void FileKnowledgeAnnotManager::recursive_gm_annot_generation(general_annot* nod
         depth = node_depths[current_node];
     }
 
-    bool is_forAll_goal = false;
     if(gm[current_node].type == istar_goal) {
-		is_forAll_goal = goal_node_resolution(node_annot, current_node, depth, valid_forAll_conditions, worlddb);
+		goal_node_resolution(node_annot, current_node, depth, valid_forAll_conditions, worlddb);
     }
 
     if(node_annot->content == sequential_op && node_annot->or_decomposition) {
@@ -124,7 +123,7 @@ void FileKnowledgeAnnotManager::recursive_gm_annot_generation(general_annot* nod
         return;
     } 
         
-    expand_annotation(node_annot, current_node, is_forAll_goal, depth, vctr, valid_forAll_conditions, worlddb);
+    expand_annotation(node_annot, current_node, false, depth, vctr, valid_forAll_conditions, worlddb);
 }
 
 /*
@@ -308,35 +307,35 @@ bool AnnotManager::forall_goal_resolution(general_annot* node_annot, int current
 bool FileKnowledgeAnnotManager::goal_node_resolution(general_annot* node_annot, int current_node, int depth, map<int,AchieveCondition>& valid_forAll_conditions, pt::ptree worlddb) {
     bool is_forAll_goal = false;
 
-    if(std::get<string>(gm[current_node].custom_props[goal_type_prop]) == query_goal_type) {
-        QueriedProperty q = std::get<QueriedProperty>(gm[current_node].custom_props[queried_property_prop]);
+    // if(std::get<string>(gm[current_node].custom_props[goal_type_prop]) == query_goal_type) {
+        // QueriedProperty q = std::get<QueriedProperty>(gm[current_node].custom_props[queried_property_prop]);
 
-        pt::ptree query_ptree = get_query_ptree(gm, current_node, valid_variables, valid_forAll_conditions, worlddb, knowledge_unique_id);
+        // pt::ptree query_ptree = get_query_ptree(gm, current_node, valid_variables, valid_forAll_conditions, worlddb, knowledge_unique_id);
 
-        pair<vector<pt::ptree>,set<string>> query_result = solve_query_statement(query_ptree,q,gm,current_node,valid_variables, knowledge_unique_id);
+        // pair<vector<pt::ptree>,set<string>> query_result = solve_query_statement(query_ptree,q,gm,current_node,valid_variables, knowledge_unique_id);
 
-        string var_name = std::get<vector<pair<string,string>>>(gm[current_node].custom_props[controls_prop]).at(0).first;
-        string var_type = std::get<vector<pair<string,string>>>(gm[current_node].custom_props[controls_prop]).at(0).second;
+        // string var_name = std::get<vector<pair<string,string>>>(gm[current_node].custom_props[controls_prop]).at(0).first;
+        // string var_type = std::get<vector<pair<string,string>>>(gm[current_node].custom_props[controls_prop]).at(0).second;
 
-        if(parse_gm_var_type(var_type) == "COLLECTION") {
-            valid_variables[var_name] = make_pair(var_type,query_result.first);
-        } else {
-            vector<pt::ptree> aux = {};
+    //     if(parse_gm_var_type(var_type) == "COLLECTION") {
+    //         valid_variables[var_name] = make_pair(var_type,query_result.first);
+    //     } else {
+    //         vector<pt::ptree> aux = {};
 
-            if(query_result.first.size() > 0) {
-                aux.push_back(query_result.first.at(0));
-                valid_variables[var_name] = make_pair(var_type,aux);
-            } else {
-                valid_variables[var_name] = make_pair(var_type,aux);
-            }
-        }
-    } else if(std::get<string>(gm[current_node].custom_props[goal_type_prop]) == achieve_goal_type) {
-        AchieveCondition a = std::get<AchieveCondition>(gm[current_node].custom_props[achieve_condition_prop]);
-        if(a.has_forAll_expr) {
-            is_forAll_goal = true;
-            valid_forAll_conditions[depth] = a;
-        }
-    }
+    //         if(query_result.first.size() > 0) {
+    //             aux.push_back(query_result.first.at(0));
+    //             valid_variables[var_name] = make_pair(var_type,aux);
+    //         } else {
+    //             valid_variables[var_name] = make_pair(var_type,aux);
+    //         }
+    //     }
+    // } else if(std::get<string>(gm[current_node].custom_props[goal_type_prop]) == achieve_goal_type) {
+    //     AchieveCondition a = std::get<AchieveCondition>(gm[current_node].custom_props[achieve_condition_prop]);
+    //     if(a.has_forAll_expr) {
+    //         is_forAll_goal = true;
+    //         valid_forAll_conditions[depth] = a;
+    //     }
+    // }
 
     GMGraph::out_edge_iterator ei, ei_end;
     for(boost::tie(ei,ei_end) = out_edges(current_node,gm);ei != ei_end;++ei) {
@@ -374,12 +373,12 @@ void AnnotManager::expand_annotation(general_annot* node_annot, int current_node
 
     int forall_generated_instances = -1;
 
-    if(is_forAll_goal) {
-        string iterated_var = valid_forAll_conditions[depth].get_iterated_var();
-        string iteration_var = valid_forAll_conditions[depth].get_iteration_var();
+    // if(is_forAll_goal) {
+    //     string iterated_var = valid_forAll_conditions[depth].get_iterated_var();
+    //     string iteration_var = valid_forAll_conditions[depth].get_iteration_var();
 
-        forall_generated_instances = valid_variables[iterated_var].second.size();
-    }
+    //     forall_generated_instances = valid_variables[iterated_var].second.size();
+    // }
 
     if(forall_generated_instances != 0) {
         general_annot* expanded_annot = retrieve_runtime_annot(gm[current_node].text);
@@ -400,7 +399,7 @@ void AnnotManager::expand_annotation(general_annot* node_annot, int current_node
                         aux->type = TASK;
                     }
 
-                    expanded_annot->children.push_back(aux);
+                    expanded_annot->children.push_back(aux);     
                 }
             } 
         } else { //Means-end decomposition
@@ -438,9 +437,9 @@ void AnnotManager::expand_annotation(general_annot* node_annot, int current_node
 
         vctr.erase(vctr.begin());
         
-        if(is_forAll_goal) {
-            expanded_in_forAll = forall_goal_resolution(node_annot, current_node, depth, valid_forAll_conditions, vctr, worlddb);
-        }
+        // if(is_forAll_goal) {
+        //     expanded_in_forAll = forall_goal_resolution(node_annot, current_node, depth, valid_forAll_conditions, vctr, worlddb);
+        // }
 
         if(!expanded_in_forAll) {
             for(general_annot* child : node_annot->children) {           

@@ -585,7 +585,6 @@ void print_gm_nodes_info(GMGraph gm) {
 			
 		if(node.custom_props.find(context_prop) != node.custom_props.end()) {
 			c = get<Context>(node.custom_props[context_prop]);
-
 			std::cout << "\tType: " << c.get_context_type() << std::endl;
 		} else {
 			std::cout << "\tNo Context" << std::endl;
@@ -623,17 +622,16 @@ void print_gm_nodes_info_to_file(GMGraph gm) {
 			
 		if(node.custom_props.find(context_prop) != node.custom_props.end()) {
 			c = get<Context>(node.custom_props[context_prop]);
-
-			std::cout << "\tType: " << c.get_context_type() << std::endl;
+			out << "\tType: " << c.get_context_type() << std::endl;
 		} else {
-			std::cout << "\tNo Context" << std::endl;
+			out << "\tNo Context" << std::endl;
 		}
 
         out << "Parameters: " << std::endl;
 
         if(node.custom_props.find(params_prop) != node.custom_props.end()) {
             for(string param : get<vector<string>>(node.custom_props[params_prop])) {
-                std::cout << "\tParam: " << param << std::endl;
+                out << "\tParam: " << param << std::endl;
             }
         }
 
@@ -699,4 +697,23 @@ void print_gm(GMGraph gm) {
 	}
 
 	std::cout << std::endl;
+}
+
+void print_gm_to_file(GMGraph gm) {
+    GMGraph::vertex_iterator i, end;
+	GMGraph::adjacency_iterator ai, a_end;
+
+    std::ofstream out("goal_ordering.txt", std::ios_base::app | std::ios_base::out);
+
+	for(boost::tie(i,end) = vertices(gm); i != end; ++i) {
+		VertexData node = gm[*i];
+		out << get_node_name(node.text) << "(" << *i << ") " << " --> ";
+
+		for(boost::tie(ai,a_end) = adjacent_vertices(*i,gm); ai != a_end;++ai) {
+			VertexData a_node = gm[*ai];
+			out << get_node_name(a_node.text) << "(" << *ai << ")" << " ";
+		}	
+		out << std::endl;
+	}
+	out << std::endl;
 }

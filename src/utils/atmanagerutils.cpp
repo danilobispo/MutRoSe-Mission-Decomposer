@@ -65,6 +65,56 @@ void print_at_instances_info(map<string,vector<AbstractTask>> at_instances) {
 	}
 }
 
+void print_at_instances_info_to_file(map<string,vector<AbstractTask>> at_instances) {
+
+	std::ofstream out("at_instances_info.txt", std::ios_base::app | std::ios_base::out);
+	map<string,vector<AbstractTask>>::iterator at_it;
+	cout << "AT instances:" << endl;
+	for(at_it = at_instances.begin();at_it != at_instances.end();++at_it) {
+		out << "AT name: " << at_it->first << endl;
+		for(AbstractTask inst : at_it->second) {
+			out << "ID: " << inst.id << endl;
+			cout << "Name: " << inst.name << endl;
+			cout << "Variable Mappings:" << endl;
+			for(auto var_map : inst.variable_mapping) {
+				if(holds_alternative<string>(var_map.first.first)) {
+					cout << var_map.second << ": " << std::get<string>(var_map.first.first) << endl;
+				} else {
+					vector<string> map_values = std::get<vector<string>>(var_map.first.first);
+					cout << var_map.second << ": [";
+					unsigned int index = 0;
+					for(string val : map_values) {
+						if(index == map_values.size()-1) {
+							cout << val << "]" << endl;
+						} else {
+							cout << val << ",";
+						}
+						index++;
+					}
+				}
+			}
+			cout << "Triggering Events:" << endl;
+			for(string event : inst.triggering_events) {
+				cout << event << ", ";
+			}
+			cout << endl;
+			cout << "Location(s):" << endl;
+			cout << "Location(s) Var: " << inst.location.second.first << " : " << inst.location.second.second << endl;
+			cout << "Location(s) Value: " << endl;
+			if(holds_alternative<vector<string>>(inst.location.first)) {
+				vector<string> locs = get<vector<string>>(inst.location.first);
+				for(string loc : locs) {
+					cout << loc << endl;
+				}
+			} else {
+				string loc = get<string>(inst.location.first);
+				cout << loc << endl;
+			}
+			cout << endl;
+		}
+	}
+}
+
 /*
     Function: print_at_paths_info
     Objective: Print abstract tasks decomposition paths info in terminal

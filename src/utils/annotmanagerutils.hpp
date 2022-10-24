@@ -42,6 +42,7 @@ void recursive_child_replacement(general_annot* copy, general_annot* original);
 void rename_at_instances_in_runtime_annot(general_annot* gmannot, std::map<std::string,std::vector<AbstractTask>> at_instances, GMGraph gm);
 void recursive_at_instances_renaming(general_annot* rannot, std::map<std::string,int>& at_instances_counter, bool in_forAll, map<string,vector<AbstractTask>> at_instances, GMGraph gm);
 void print_runtime_annot_from_general_annot(general_annot* rt);
+void print_general_annot_to_file(general_annot* rt);
 
 std::string recursive_rt_annot_build(general_annot* rt);
 

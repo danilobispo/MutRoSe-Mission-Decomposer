@@ -83,6 +83,7 @@ void print_gm_nodes_info(GMGraph gm);
 void print_gm_nodes_info_to_file(GMGraph gm);
 void print_gm_var_map_info(std::map<std::string, std::variant<std::pair<std::string,std::string>,std::pair<std::vector<std::string>,std::string>>> gm_var_map);
 void print_gm(GMGraph gm);
+void print_gm_to_file(GMGraph gm);
 
 struct sort_edges {
     inline bool operator() (const std::pair<std::pair<int,int>, EdgeData> e1, const std::pair<std::pair<int,int>, EdgeData> e2) {

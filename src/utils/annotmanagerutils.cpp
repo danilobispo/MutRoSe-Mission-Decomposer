@@ -21,7 +21,7 @@ map<string,general_annot*> goals_and_rannots;
 
     @ Input: The text of the desired node in the goal model
     @ Output: The runtime annotation of the given node
-*/ 
+*/
 general_annot* retrieve_runtime_annot(string id) {
     parse_string(id.c_str());
 
@@ -69,7 +69,7 @@ void recursive_fill_up_runtime_annot(general_annot* rannot, VertexData gm_node) 
     @ Input 1: A reference to the copy runtime annotation to be created
     @ Input 2: A reference to the original runtime annotation
     @ Output: Void. The copy runtime annotation is initialized with the values of the original one
-*/ 
+*/
 void recursive_child_replacement(general_annot* copy, general_annot* original) {
     if(original->children.size() > 0) {
         for(general_annot* original_child : original->children) {
@@ -97,9 +97,10 @@ void recursive_child_replacement(general_annot* copy, general_annot* original) {
     @ Input 2: The at instances map
     @ Input 3: The goal model as a GMGraph object
     @ Output: Void. The goal model runtime annotation has the AT's instances renamed
-*/ 
-void rename_at_instances_in_runtime_annot(general_annot* gmannot, map<string,vector<AbstractTask>> at_instances, GMGraph gm) {
-    map<string,int> at_instances_counter;
+*/
+void rename_at_instances_in_runtime_annot(general_annot *gmannot, map<string, vector<AbstractTask>> at_instances, GMGraph gm)
+{
+    map<string, int> at_instances_counter;
 
     set<string> considered_tasks;
 
@@ -144,7 +145,7 @@ void rename_at_instances_in_runtime_annot(general_annot* gmannot, map<string,vec
     @ Input 4: The at instances map
     @ Input 5: The goal model as a GMGraph object
     @ Output: Void. The runtime goal model annotation is renamed
-*/ 
+*/
 void recursive_at_instances_renaming(general_annot* rannot, map<string,int>& at_instances_counter, bool in_forAll, map<string,vector<AbstractTask>> at_instances, GMGraph gm) {
     set<string> operators {sequential_op,parallel_op,fallback_op};
 
@@ -186,21 +187,53 @@ void recursive_at_instances_renaming(general_annot* rannot, map<string,int>& at_
             }
         }
     }
-}   
+}
 
 /*
     Function: print_runtime_annot_from_general_annot
     Objective: Print the given runtime annotation in the terminal
 
-    @ Input: The runtime annotation to be printed 
+    @ Input: The runtime annotation to be printed
     @ Output: Void. The runtime annotation is printed
-*/ 
+*/
 void print_runtime_annot_from_general_annot(general_annot* rt) {
     string rt_annot = "";
 
     rt_annot = recursive_rt_annot_build(rt);
-
+    cout << "Printing runtime annot:" << endl;
     cout << rt_annot << endl;
+    cout << "Ending printing runtime annot..." << endl;
+}
+
+void print_general_annot_to_file(general_annot *rt)
+{
+    // Create file:
+    std::ofstream out("general_annot_orderings.txt", std::ios_base::app | std::ios_base::out);
+    // First, print the content
+    out << endl;
+    cout << "rt->or_decomposition" << rt->or_decomposition << endl;
+    if(rt->content == "#" && rt->or_decomposition == true){
+        out << "OR" << " --> ";
+    } else {
+        out << rt->content << " --> ";
+    }
+
+    // next, print their respective children
+    for (general_annot *child : rt->children)
+    {
+        if(child->content == "#" && child->or_decomposition == true)
+        {
+            out << "OR" << " ";
+        }
+        else {
+            out << child->content << " ";
+        }
+    }
+    out << endl;
+    for (general_annot *child : rt->children)
+    {
+        print_general_annot_to_file(child);
+    }
 }
 
 /*
@@ -209,7 +242,7 @@ void print_runtime_annot_from_general_annot(general_annot* rt) {
 
     @ Input: The current runtime annotation being considered
     @ Output: The current runtime annotation string
-*/ 
+*/
 string recursive_rt_annot_build(general_annot* rt) {
     set<string> operators {sequential_op,parallel_op,fallback_op};
 
