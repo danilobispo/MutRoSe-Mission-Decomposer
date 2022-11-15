@@ -1,90 +1,108 @@
 Node: G1: Deliver Food to Patients [G2;G3]
 Context: 
+	No Context
 Parameters: 
 Group? 1
 Divisible? 1
 
 Node: G2: Fetch Rooms That Need Food Delivering
 Context: 
+	No Context
 Parameters: 
 Group? 1
 Divisible? 1
 
 Node: G4: Get Food In Kitchen [G5;G6]
 Context: 
+	No Context
 Parameters: 
 Group? 1
 Divisible? 1
 
 Node: G5: Fetch Kitchen Location
 Context: 
+	No Context
 Parameters: 
 Group? 1
 Divisible? 1
 
 Node: G3: Get Foods and Deliver Them in Rooms [G4;G7]
 Context: 
+	No Context
 Parameters: 
 Group? 1
 Divisible? 0
 
 Node: G6: Get Food In Kitchen
 Context: 
+	No Context
 Parameters: 
 Group? 1
 Divisible? 1
 
 Node: AT1: GetFood
 Context: 
+	No Context
 Parameters: 
+	Param: current_delivery
 Group? 1
 Divisible? 1
 
 Node: G7: Deliver Food [G8;G9;G10]
 Context: 
+	No Context
 Parameters: 
 Group? 1
 Divisible? 1
 
 Node: G8: Fetch Delivery's Patient
 Context: 
+	No Context
 Parameters: 
 Group? 1
 Divisible? 1
 
 Node: G9: Fetch Delivery's Room
 Context: 
+	No Context
 Parameters: 
 Group? 1
 Divisible? 1
 
 Node: G10: Deliver Food To Patient
 Context: 
+	No Context
 Parameters: 
 Group? 1
 Divisible? 1
 
 Node: G11: Deliver Food To Room Table
 Context: 
+	No Context
 Parameters: 
 Group? 1
 Divisible? 1
 
 Node: AT2: DeliverToTable
 Context: 
+	No Context
 Parameters: 
+	Param: current_patient
 Group? 1
 Divisible? 1
 
 Node: G12: Food Fetched From Robot Tray
 Context: 
+	No Context
 Parameters: 
 Group? 1
 Divisible? 1
 
 Node: AT3: DeliverToFetch
 Context: 
+	No Context
 Parameters: 
+	Param: current_patient
 Group? 1
 Divisible? 1
 

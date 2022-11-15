@@ -213,9 +213,11 @@ void print_general_annot_to_file(general_annot *rt)
     out << endl;
     cout << "rt->or_decomposition" << rt->or_decomposition << endl;
     if(rt->content == "#" && rt->or_decomposition == true){
-        out << "OR" << " --> ";
+        out << rt->related_goal << "_" << "OR" << " --> ";
+    } else if (rt->content == ";" || rt->content == "FALLBACK" || rt->content == "#") {
+        out << rt->related_goal << "_" << rt->content << " --> ";
     } else {
-        out << rt->content << " --> ";
+        out << rt->content << " --> " ;
     }
 
     // next, print their respective children
@@ -223,7 +225,10 @@ void print_general_annot_to_file(general_annot *rt)
     {
         if(child->content == "#" && child->or_decomposition == true)
         {
-            out << "OR" << " ";
+            out << child->related_goal << "_" <<  "OR" << " ";
+        }
+        else if (child->content == ";" || child->content == "FALLBACK" || child->content == "#") {
+            out << child->related_goal << "_" << child->content << " ";
         }
         else {
             out << child->content << " ";
